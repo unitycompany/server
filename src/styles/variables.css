@@ -1,0 +1,25 @@
+@import url('https://fonts.googleapis.com/css2?family=Aboreto&family=Montserrat:ital,wght@0,100..900;1,100..900&display=swap');
+
+:root {
+    --color--gray: #CFC4B1;
+    --color--white: #EDE1D2;
+    --color--black: #1d1b1d;
+    
+    --color--orange--high: #5D2510;
+    --color--orange--medium: #803407;
+    --color--orange--low: #B05216;
+
+    --color--brown--very--high: #211103;
+    --color--brown--high: #4F2915;
+    --color--brown--medium: #603813;
+    --color--brown--low: #935727;
+
+    --color--green--very--high: #1D2305;
+    --color--green--high: #28300B;
+    --color--green--medium: #4D5615;
+    --color--green--low: #576628;
+    --color--green--very--low: #828E51;
+
+    --font--montserrat: "Montserrat", serif;
+    --font--aboreto:  "Aboreto", serif;
+}
