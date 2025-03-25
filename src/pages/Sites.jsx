@@ -4,6 +4,7 @@ import { collection, getDocs, deleteDoc, doc, updateDoc, addDoc } from "firebase
 import { getDatabase } from "../../firebaseConfig";
 import CardSite from "../components/CardSites";
 import { toast } from "react-toastify"; // Função toast do React Toastify
+import { IoIosSearch } from "react-icons/io";
 
 const Content = styled.div`
   padding: 2.5%;
@@ -44,11 +45,27 @@ const TopLeft = styled.div`
   gap: 10px;
 `;
 
-const SearchInput = styled.input`
-  padding: 5px;
-  font-size: 14px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
+const FilterContainer = styled.div`
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    width: auto;
+    height: auto;
+    border: 1px solid #00000050;
+    padding: 5px;
+
+    & svg {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      opacity: 0.5;
+    }
+
+    & input {
+      font-size: 12px;
+    }
 `;
 
 const Container = styled.div`
@@ -506,13 +523,18 @@ const Sites = () => {
       <Top>
         <TopLeft>
           <h1>Sites - Unity Company</h1>
-          <SearchInput
-            type="text"
-            placeholder="Buscar site pelo nome"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
+          
         </TopLeft>
+        <FilterContainer>
+          <IoIosSearch />
+          <input
+              type="text"
+              placeholder="Buscar site pelo nome"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+        </FilterContainer>
+        
         <button onClick={() => { 
           console.log("Abrindo modal para adicionar novo site");
           setIsAdding(true);
