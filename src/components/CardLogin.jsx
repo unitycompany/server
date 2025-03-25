@@ -5,9 +5,9 @@ import {
   FaGoogleDrive, FaGoogle, FaLink, FaMailchimp, FaPinterest, FaShopify, FaSpotify, FaTiktok, 
   FaWordpress
 } from "react-icons/fa";
-import { IoLogoVercel } from "react-icons/io5";
+import { IoLogoFirebase, IoLogoVercel } from "react-icons/io5";
 import { FaMeta } from "react-icons/fa6";
-import { SiGoogleads, SiZapier } from "react-icons/si";
+import { SiCloudflare, SiGoogleads, SiMake, SiSemrush, SiZapier } from "react-icons/si";
 import { PiLinktreeLogo } from "react-icons/pi";
 import { FcGoogle } from "react-icons/fc";
 
@@ -207,6 +207,10 @@ const CardLogin = ({
     googleads: <SiGoogleads />,
     linktree: <PiLinktreeLogo />,
     zapier: <SiZapier />,
+    make: <SiMake />,
+    cloudflare: <SiCloudflare />,
+    firebase: <IoLogoFirebase />,
+    semrush: <SiSemrush />,
   };
 
   return (

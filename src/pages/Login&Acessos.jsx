@@ -12,8 +12,8 @@ import {
   FaSearch
 } from "react-icons/fa";
 import { FaMeta } from "react-icons/fa6";
-import { IoLogoVercel } from "react-icons/io5";
-import { SiGoogleads, SiZapier } from "react-icons/si";
+import { IoLogoFirebase, IoLogoVercel } from "react-icons/io5";
+import { SiCloudflare, SiGoogleads, SiMake, SiSemrush, SiZapier } from "react-icons/si";
 import { PiLinktreeLogo } from "react-icons/pi";
 import { FcGoogle } from "react-icons/fc";
 import { IoIosSearch } from "react-icons/io";
@@ -54,6 +54,10 @@ const socialOptions = [
   { name: "googleads", icon: <SiGoogleads /> },
   { name: "linktree", icon: <PiLinktreeLogo /> },
   { name: "zapier", icon: <SiZapier /> },
+  { name: "make", icon: <SiMake />},
+  { name: "cloudflare", icon: <SiCloudflare /> },
+  { name: "firebase", icon: <IoLogoFirebase /> },
+  { name: "semrush", icon: <SiSemrush /> },
 ];
 
 // Novo styled component para o checkbox com estilo customizado
@@ -126,9 +130,9 @@ const Top = styled.div`
   padding: 5px 0px;
   position: sticky;
   top: 0;
-  background-color: #fff;
-  z-index: 2;
+  background-color: #ffffff;
   box-shadow: 0 0 50px rgba(255,255,255, 1);
+  z-index: 1;
   
   & button {
     padding: 5px 15px;
@@ -498,7 +502,7 @@ const AcessoLogins = () => {
           isOpen={modalAddIsOpen}
           onRequestClose={() => setModalAddIsOpen(false)}
           style={{
-            overlay: { backgroundColor: "rgba(0, 0, 0, 0.5)" },
+            overlay: { backgroundColor: "rgba(0, 0, 0, 0.5)", zIndex: "10" },
             content: { margin: "auto", width: "max-content", overflow: "hidden", height: "max-content" },
           }}
         >
@@ -591,7 +595,7 @@ const AcessoLogins = () => {
           isOpen={modalEditIsOpen}
           onRequestClose={() => setModalEditIsOpen(false)}
           style={{
-            overlay: { backgroundColor: "rgba(0, 0, 0, 0.5)" },
+            overlay: { backgroundColor: "rgba(0, 0, 0, 0.5)", zIndex: "10" },
             content: { margin: "auto", width: "max-content", overflow: "hidden", height: "max-content" },
           }}
         >
