@@ -22,8 +22,8 @@ const companyLogos = {
 };
 
 const Card = styled.div`
-  border: 1px solid #00000050;
-  padding: 15px;
+  border: 1px solid #00000030;
+  padding: 5px;
   display: flex;
   align-items: flex-start;
   flex-direction: column;
@@ -71,16 +71,24 @@ const Card = styled.div`
       padding: 5px;
       cursor: pointer;
       font-size: 14px;
-      transition: all .2s ease-in-out;
+      transition: all 0.1s ease-in-out;
 
-      &:nth-child(1){
+      &:nth-child(1) {
         background-color: #000;
         color: #fff;
+        &:hover {
+          background-color: #00ff2a1f;
+          color: #000;
+        }
       }
 
-      &:nth-child(2){
+      &:nth-child(2) {
         background-color: #fff;
         color: #000;
+        &:hover {
+          background-color: #ff00001f;
+          color: #000;
+        }
       }
     }
   }
@@ -110,9 +118,16 @@ const Card = styled.div`
 
 const CardTitle = styled.h2`
   display: flex;
-  align-items: center;
+  align-items: center!important;
+  justify-content: center!important;
   gap: 5px;
   flex-direction: row-reverse;
+
+  & span {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
 
   & svg {
     font-size: 18px;
@@ -131,12 +146,12 @@ const Google = styled.span`
   display: flex;
   align-items: flex-start;
   justify-content: flex-start;
-  top: 15px;
+  top: 5px;
   right: 5px;
-  font-size: 12px;
-  background-color: #000000;
-  padding: 5px;
+  font-size: 14px;
+  padding: 3px;
   color: #fff;
+  border: 1px solid #00000020;
 `;
 
 const Empresa = styled.span`
@@ -144,7 +159,7 @@ const Empresa = styled.span`
   display: flex;
   align-items: center;
   justify-content: center;
-  top: 15px;
+  top: 5px;
   right: 30px;
   font-size: 8px;
   color: #fff;
@@ -198,20 +213,22 @@ const CardLogin = ({
     <Card>
       <CardTitle>
         <h1>{nomeSite}</h1>
-        {obs && socialIcons[obs] ? socialIcons[obs] : null}
+        {obs && socialIcons[obs] ? (
+          <span title={obs}>{socialIcons[obs]}</span>
+        ) : null}
       </CardTitle>
       
-      {/* Só mostra o ícone do Google se googleLogin === true */}
+      {/* Exibe o ícone do Google se googleLogin for true */}
       {googleLogin && (
         <Google>
-          <FcGoogle />
+          <FcGoogle title="Login com Google" />
         </Google>
       )}
 
-      {/* Só mostra a logo da empresa se houver empresa selecionada e houver imagem no objeto */}
+      {/* Exibe a logo da empresa com tooltip */}
       {empresa && companyLogos[empresa] && (
         <Empresa>
-          <img src={companyLogos[empresa]} alt={empresa} />
+          <img src={companyLogos[empresa]} alt={empresa} title={empresa} />
         </Empresa>
       )}
 

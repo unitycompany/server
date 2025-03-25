@@ -8,13 +8,15 @@ import "react-toastify/dist/ReactToastify.css";
 import { 
   FaLink, FaLinkedin, FaInstagram, FaYoutube, FaFacebook, FaBehance, FaCpanel, 
   FaFigma, FaGithub, FaGoogleDrive, FaGoogle, FaMailchimp, FaPinterest, FaShopify, 
-  FaSpotify, FaTiktok, FaWordpress 
+  FaSpotify, FaTiktok, FaWordpress, 
+  FaSearch
 } from "react-icons/fa";
 import { FaMeta } from "react-icons/fa6";
 import { IoLogoVercel } from "react-icons/io5";
 import { SiGoogleads, SiZapier } from "react-icons/si";
 import { PiLinktreeLogo } from "react-icons/pi";
 import { FcGoogle } from "react-icons/fc";
+import { IoIosSearch } from "react-icons/io";
 
 // Configuração do modal
 Modal.setAppElement("#root");
@@ -56,7 +58,7 @@ const socialOptions = [
 
 // Novo styled component para o checkbox com estilo customizado
 const CheckboxContainer = styled.label`
-position: relative;
+  position: relative;
   cursor: pointer;
 
   input {
@@ -116,8 +118,9 @@ const Top = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  border-bottom: 1px solid #00000050;
-  padding: 10px 0;
+  border-bottom: 2px solid #000;
+  padding: 5px 0px;
+  
   & button {
     padding: 5px 15px;
     background-color: #000000;
@@ -127,10 +130,46 @@ const Top = styled.div`
     font-size: 14px;
     transition: all 0.2s ease;
     &:hover {
-      background-color: #ffffff;
-      border-color: #000;
+      background-color: #00ff2a1f;
       color: #000;
     }
+  }
+`;
+
+const FilterContainer = styled.div`
+  width: auto;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin: 10px 0;
+
+  & div {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    width: auto;
+    height: auto;
+    border: 1px solid #00000050;
+    padding: 5px;
+
+    & svg {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      opacity: 0.5;
+    }
+
+    & input {
+      font-size: 12px;
+    }
+  }
+
+  & select {
+    padding: 5px;
+    font-size: 12px;
+    border: 1px solid #00000050;
   }
 `;
 
@@ -152,6 +191,15 @@ const ModalContent = styled.div`
   gap: 20px;
   outline: none;
   height: auto;
+
+  & .StyleGoogle {
+    border: 1px solid #00000020;
+    padding: 10px;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+  }
+
   & h2 {
     font-size: 18px;
     font-weight: 600;
@@ -187,11 +235,13 @@ const ModalContent = styled.div`
   }
   & .social-selection {
     display: flex;
-    gap: 5px;
+    gap: 3px;
     align-items: center;
     justify-content: space-between;
     width: 100%;
     flex-wrap: wrap;
+    border: 1px solid #00000020;
+    padding: 5px;
   }
   & .social-icon {
     font-size: 18px;
@@ -204,30 +254,27 @@ const ModalContent = styled.div`
   & .social-icon.selected {
     opacity: 1;
     background-color: #000;
-
     & svg {
       fill: #fff;
     }
   }
   & button {
-    padding: 8px 10px;
+    padding: 12px 10px;
     background-color: #424242;
     color: white;
     border: none;
     cursor: pointer;
     font-size: 14px;
-    border-radius: 5px;
     &:hover {
       background-color: #000;
     }
   }
-
-  & div{
-     display: flex;
-     align-items: flex-start;
-     justify-content: flex-start;
-     gap: 5px;
-     position: relative;
+  & div {
+    display: flex;
+    align-items: flex-start;
+    justify-content: flex-start;
+    gap: 5px;
+    position: relative;
   }
 `;
 
@@ -277,6 +324,10 @@ const AcessoLogins = () => {
   const [deleteModal, setDeleteModal] = useState(false);
   const [loginToDelete, setLoginToDelete] = useState(null);
 
+  // Estados para filtros
+  const [searchTerm, setSearchTerm] = useState("");
+  const [empresaFilter, setEmpresaFilter] = useState("");
+
   // Estado do novo login (inclui googleLogin e empresa)
   const [newLogin, setNewLogin] = useState({
     nomeSite: "",
@@ -307,6 +358,13 @@ const AcessoLogins = () => {
     fetchLogins();
   }, [fetchLogins, reload]);
 
+  // Filtrando os logins conforme o termo de busca e a empresa selecionada
+  const filteredLogins = logins.filter((login) => {
+    const matchNomeSite = login.nomeSite.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchEmpresa = empresaFilter ? login.empresa === empresaFilter : true;
+    return matchNomeSite && matchEmpresa;
+  });
+
   const handleAddLogin = async () => {
     if (!newLogin.nomeSite || !newLogin.login || !newLogin.senha) {
       toast.error("Preencha todos os campos!");
@@ -323,7 +381,7 @@ const AcessoLogins = () => {
     });
     setModalAddIsOpen(false);
     toast.success("Login adicionado com sucesso!");
-    setReload(prev => !prev);
+    setReload((prev) => !prev);
   };
 
   const handleRemoveLogin = async () => {
@@ -331,7 +389,7 @@ const AcessoLogins = () => {
       await removeLogin(dbName, loginToDelete);
       setDeleteModal(false);
       toast.warn("Login removido!");
-      setReload(prev => !prev);
+      setReload((prev) => !prev);
     }
   };
 
@@ -364,7 +422,7 @@ const AcessoLogins = () => {
     });
     toast.success("Login atualizado com sucesso!");
     setModalEditIsOpen(false);
-    setReload(prev => !prev);
+    setReload((prev) => !prev);
   };
 
   const handleKeyPress = (e) => {
@@ -378,11 +436,36 @@ const AcessoLogins = () => {
       <Content>
         <Top>
           <h1>Login e Senhas</h1>
+
+          <FilterContainer>
+            <div>
+              <IoIosSearch />
+              <input
+                type="text"
+                placeholder="Buscar nome do site"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+            <select
+              value={empresaFilter}
+              onChange={(e) => setEmpresaFilter(e.target.value)}
+            >
+              <option value="">Todas as Empresas</option>
+              <option value="Unity">Unity</option>
+              <option value="Nova Metálica">Nova Metálica</option>
+              <option value="Fast Sistemas Construtivos">Fast Sistemas Construtivos</option>
+              <option value="Fast Homes">Fast Homes</option>
+              <option value="Pousada Le Ange">Pousada Le Ange</option>
+              <option value="Milena">Milena</option>
+            </select>
+          </FilterContainer>
+
           <button onClick={() => setModalAddIsOpen(true)}>Adicionar novo login</button>
         </Top>
 
         <Container>
-          {logins.map((login) => (
+          {filteredLogins.map((login) => (
             <CardLogin
               key={login.id}
               id={login.id}
@@ -440,11 +523,12 @@ const AcessoLogins = () => {
               />
             </label>
 
-            {/* Seletor de ícone (social) */}
+            {/* Seletor de ícone (social) com tooltip */}
             <div className="social-selection">
               {socialOptions.map((option) => (
                 <div
                   key={option.name}
+                  title={option.name}
                   className={`social-icon ${newLogin.obs === option.name ? "selected" : ""}`}
                   onClick={() => setNewLogin({ ...newLogin, obs: option.name })}
                 >
@@ -461,6 +545,7 @@ const AcessoLogins = () => {
                 onChange={(e) => setNewLogin({ ...newLogin, empresa: e.target.value })}
               >
                 <option value="">Selecione uma empresa</option>
+                <option value="Unity">Unity</option>
                 <option value="Nova Metálica">Nova Metálica</option>
                 <option value="Fast Sistemas Construtivos">Fast Sistemas Construtivos</option>
                 <option value="Fast Homes">Fast Homes</option>
@@ -470,7 +555,7 @@ const AcessoLogins = () => {
             </label>
 
             {/* Checkbox customizado para "É necessário logar pelo Google?" */}
-            <div>
+            <div className="StyleGoogle">
               <span>É necessário logar pelo Google?</span>
               <CheckboxContainer>
                 <input
@@ -533,11 +618,12 @@ const AcessoLogins = () => {
               />
             </label>
 
-            {/* Seletor de ícone (social) */}
+            {/* Seletor de ícone (social) com tooltip */}
             <div className="social-selection">
               {socialOptions.map((option) => (
                 <div
                   key={option.name}
+                  title={option.name}
                   className={`social-icon ${editLoginData.social === option.name ? "selected" : ""}`}
                   onClick={() => setEditLoginData({ ...editLoginData, social: option.name })}
                 >
@@ -564,7 +650,7 @@ const AcessoLogins = () => {
             </label>
 
             {/* Checkbox customizado para "É necessário logar pelo Google?" */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div className="StyleGoogle"> 
               <span>É necessário logar pelo Google?</span>
               <CheckboxContainer>
                 <input

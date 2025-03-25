@@ -38,6 +38,19 @@ const Top = styled.div`
   }
 `;
 
+const TopLeft = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 10px;
+`;
+
+const SearchInput = styled.input`
+  padding: 5px;
+  font-size: 14px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+`;
+
 const Container = styled.div`
   width: 100%;
   display: flex;
@@ -208,9 +221,9 @@ const Card = styled.div`
   flex-direction: column;
   align-items: flex-start;
   justify-content: flex-start;
-  gap: 20px;
+  gap: 10px;
   width: auto;
-  padding: 20px;
+  padding: 10px;
 
   & div {
     display: flex;
@@ -219,9 +232,10 @@ const Card = styled.div`
     gap: 10px;
 
     & button {
-      padding: 5px 10px;
+      padding: 3px 10px;
       cursor: pointer;
-      border: 2px solid #000;
+      font-size: 14px;
+      border: 1px solid #000;
 
       &:nth-child(1) {
         background-color: #353535;
@@ -244,7 +258,7 @@ const Card = styled.div`
   }
 
   & h2 {
-    font-size: 20px;
+    font-size: 18px;
     font-weight: 600;
   }
 
@@ -254,7 +268,7 @@ const Card = styled.div`
     color: #008ee0;
     cursor: pointer;
     text-decoration: none;
-    margin-top: -15px;
+    margin-top: -10px;
   }
 `;
 
@@ -274,7 +288,6 @@ const Buttons = styled.div`
   }
 `;
 
-// Função auxiliar para upload de arquivo via API
 const uploadFileToServer = async (file) => {
   console.log("Iniciando upload do arquivo:", file);
   const formData = new FormData();
@@ -332,7 +345,6 @@ const EditModalSite = ({ siteData, onSave, onCancel }) => {
               onChange={handleFieldChange}
               placeholder="Link da imagem do site"
             />
-            {/* Input para upload via API */}
             <input
               type="file"
               accept="image/*"
@@ -417,6 +429,8 @@ const Sites = () => {
   const [editingSite, setEditingSite] = useState(null);
   const [deleteSiteId, setDeleteSiteId] = useState(null);
   const [isAdding, setIsAdding] = useState(false);
+  // Estado para a busca pelo nome do site
+  const [searchTerm, setSearchTerm] = useState("");
 
   const db = getDatabase();
 
@@ -440,6 +454,10 @@ const Sites = () => {
   useEffect(() => {
     fetchSites();
   }, []);
+
+  const filteredSites = sites.filter((site) =>
+    site.name.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   const handleDelete = async (id) => {
     try {
@@ -486,7 +504,15 @@ const Sites = () => {
   return (
     <Content>
       <Top>
-        <h1>Sites - Unity Company</h1>
+        <TopLeft>
+          <h1>Sites - Unity Company</h1>
+          <SearchInput
+            type="text"
+            placeholder="Buscar site pelo nome"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+        </TopLeft>
         <button onClick={() => { 
           console.log("Abrindo modal para adicionar novo site");
           setIsAdding(true);
@@ -498,7 +524,7 @@ const Sites = () => {
         {loading ? (
           <p>Carregando...</p>
         ) : (
-          sites.map((site) => (
+          filteredSites.map((site) => (
             <Card key={site.id}>
               <img src={site.logo} alt={site.name} />
               <h2>{site.name}</h2>

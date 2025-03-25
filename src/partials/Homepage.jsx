@@ -62,7 +62,7 @@ const Lista = styled.div`
   padding: 10px 15px;
   position: relative;
   border-top: none;
-  border-left: 3px solid #000000;
+  border-left: 3px solid #00ff2a1f;
 
   & ol {
     display: flex;
@@ -128,7 +128,7 @@ const Option = styled.div`
   min-height: 80vh;
   border: 1px solid #00000020;
   border-top: none;
-  border-left: 3px solid #000000;
+  border-left: 3px solid #00ff2a1f;
 `;
 
 const Autor = styled.div`
