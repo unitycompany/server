@@ -13,7 +13,7 @@ import {
 } from "react-icons/fa";
 import { FaMeta } from "react-icons/fa6";
 import { IoLogoFirebase, IoLogoVercel } from "react-icons/io5";
-import { SiCloudflare, SiGoogleads, SiMake, SiSemrush, SiZapier } from "react-icons/si";
+import { SiCloudflare, SiFreepik, SiGoogleads, SiMake, SiSemrush, SiZapier } from "react-icons/si";
 import { PiLinktreeLogo } from "react-icons/pi";
 import { FcGoogle } from "react-icons/fc";
 import { IoIosSearch } from "react-icons/io";
@@ -58,6 +58,7 @@ const socialOptions = [
   { name: "cloudflare", icon: <SiCloudflare /> },
   { name: "firebase", icon: <IoLogoFirebase /> },
   { name: "semrush", icon: <SiSemrush /> },
+  { name: "freepik", icon: <SiFreepik />  },
 ];
 
 // Novo styled component para o checkbox com estilo customizado

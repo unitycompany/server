@@ -7,7 +7,7 @@ import {
 } from "react-icons/fa";
 import { IoLogoFirebase, IoLogoVercel } from "react-icons/io5";
 import { FaMeta } from "react-icons/fa6";
-import { SiCloudflare, SiGoogleads, SiMake, SiSemrush, SiZapier } from "react-icons/si";
+import { SiCloudflare, SiFreepik, SiGoogleads, SiMake, SiSemrush, SiZapier } from "react-icons/si";
 import { PiLinktreeLogo } from "react-icons/pi";
 import { FcGoogle } from "react-icons/fc";
 
@@ -211,6 +211,7 @@ const CardLogin = ({
     cloudflare: <SiCloudflare />,
     firebase: <IoLogoFirebase />,
     semrush: <SiSemrush />,
+    freepik: <SiFreepik />,
   };
 
   return (
