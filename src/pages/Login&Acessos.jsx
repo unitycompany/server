@@ -100,14 +100,18 @@ const CheckboxContainer = styled.label`
 `;
 
 const Content = styled.div`
-  padding: 2.5%;
+  padding: 0 2.5% 2.5% 2.5%;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  justify-content: center;
+  justify-content: flex-start;
+  align-self: flex-start;
   gap: 10px;
   width: 100%;
   overflow-y: auto;
+  max-height: 80vh;
+  position: relative;
+
   & h1 {
     font-weight: 600;
   }
@@ -120,6 +124,11 @@ const Top = styled.div`
   justify-content: space-between;
   border-bottom: 2px solid #000;
   padding: 5px 0px;
+  position: sticky;
+  top: 0;
+  background-color: #fff;
+  z-index: 2;
+  box-shadow: 0 0 50px rgba(255,255,255, 1);
   
   & button {
     padding: 5px 15px;
