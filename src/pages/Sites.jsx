@@ -239,7 +239,7 @@ const Card = styled.div`
 
   & img {
     width: auto;
-    height: 50px;
+    height: 30px;
     object-fit: contain;
   }
 
@@ -249,7 +249,7 @@ const Card = styled.div`
   }
 
   & a {
-    font-size: 16px;
+    font-size: 14px;
     line-height: 120%;
     color: #008ee0;
     cursor: pointer;

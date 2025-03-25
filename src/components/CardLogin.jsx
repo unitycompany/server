@@ -1,151 +1,234 @@
-import React, { useState } from "react";
+import React from "react";
 import styled from "styled-components";
-import { editLogin } from "./../../firebaseService";
+import { 
+  FaLinkedin, FaInstagram, FaYoutube, FaFacebook, FaBehance, FaCpanel, FaFigma, FaGithub, 
+  FaGoogleDrive, FaGoogle, FaLink, FaMailchimp, FaPinterest, FaShopify, FaSpotify, FaTiktok, 
+  FaWordpress
+} from "react-icons/fa";
+import { IoLogoVercel } from "react-icons/io5";
+import { FaMeta } from "react-icons/fa6";
+import { SiGoogleads, SiZapier } from "react-icons/si";
+import { PiLinktreeLogo } from "react-icons/pi";
+import { FcGoogle } from "react-icons/fc";
+
+// Mapeamento de empresa => logo
+const companyLogos = {
+  "Nova Metálica": "https://imagedelivery.net/1n9Gwvykoj9c9m8C_4GsGA/40b3886f-6f2c-466e-88f5-6af0faa43a00/public", 
+  "Fast Sistemas Construtivos": "https://imagedelivery.net/1n9Gwvykoj9c9m8C_4GsGA/ab2d9dea-3941-4e10-9c18-e421dbf99700/public",
+  "Fast Homes": "https://imagedelivery.net/1n9Gwvykoj9c9m8C_4GsGA/e4c70620-1eb2-4aa5-cc40-cae32ffdec00/public",
+  "Pousada Le Ange": "https://imagedelivery.net/1n9Gwvykoj9c9m8C_4GsGA/8dca7e66-ce93-48a8-b05b-7c8fd4fc6600/public",
+  "Milena": "https://imagedelivery.net/1n9Gwvykoj9c9m8C_4GsGA/848a015b-f90f-4079-e0f0-f99e09cde000/public",
+  "Unity": "https://imagedelivery.net/1n9Gwvykoj9c9m8C_4GsGA/c9f7b8c5-3736-4ac4-0d0b-97bf217b5100/public"
+};
 
 const Card = styled.div`
-    border: 1px solid #00000050;
-    padding: 15px;
+  border: 1px solid #00000050;
+  padding: 15px;
+  display: flex;
+  align-items: flex-start;
+  flex-direction: column;
+  justify-content: center;
+  gap: 15px;
+  min-width: 250px;
+  position: relative;
+
+  & label {
+    border: 1px solid #00000020;
+    padding: 15px 10px 10px 10px;
+    position: relative;
+
+    & span {
+      background: #fff;
+      padding: 2px 5px;
+      top: -10px;
+      left: 5px;
+      position: absolute;
+      font-size: 12px;
+      font-weight: 600;
+      color: #00000080;
+    }
+
+    & p {
+      font-size: 14px;
+      color: #000;
+    }
+  }
+
+  & div {
+    width: 100%;
     display: flex;
-    align-items: flex-start;
-    flex-direction: column;
-    justify-content: center;
-    gap: 15px;
-    min-width: 250px;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
 
-    & h1 {
-        font-size: 18px;
-        font-weight: 800;
-        text-transform: uppercase;
-        color: transparent;
-        background: linear-gradient(90deg, #bd0a0a, #2e2d2d, #003aa7);
-        -webkit-background-clip: text;
+    & span {
+      font-size: 12px;
     }
 
-    & label {
-        border: 1px solid #00000020;
-        padding: 15px 10px 10px 10px;
-        position: relative;
+    & button {
+      width: 50%;
+      border: 1px solid #000;
+      padding: 5px;
+      cursor: pointer;
+      font-size: 14px;
+      transition: all .2s ease-in-out;
 
-        & span {
-            background: #fff;
-            padding: 2px 5px;
-            top: -10px;
-            left: 5px;
-            position: absolute;
-            font-size: 12px;
-            font-weight: 600;
-            color: #00000080;
-        }
+      &:nth-child(1){
+        background-color: #000;
+        color: #fff;
+      }
 
-        & p {
-            font-size: 14px;
-            color: #000;
-        }
+      &:nth-child(2){
+        background-color: #fff;
+        color: #000;
+      }
     }
+  }
 
-    & div {
-        width: 100%;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 10px;
+  & article {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
 
-        & span {
-            font-size: 12px;
-        }
+    & span {
+      font-size: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: auto;
+      white-space: nowrap;
+      gap: 5px;
+      font-weight: 600;
 
-        & button {
-            width: 50%;
-            border: 1px solid #000;
-            padding: 5px;
-            cursor: pointer;
-            font-size: 14px;
-            transition: all .2s ease-in-out;
-
-            &:nth-child(1){
-                background-color: #000;
-                color: #fff;
-            }
-
-            &:nth-child(2){
-                background-color: #fff;
-                color: #000;
-            }
-        }
+      & svg {
+        width: 16px;
+      }
     }
+  }
+`;
 
-    & article {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        width: 100%;
+const CardTitle = styled.h2`
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-direction: row-reverse;
 
-        & span {
-            font-size: 10px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            width: auto;
-            white-space: nowrap;
-            gap: 5px;
-            font-weight: 600;
+  & svg {
+    font-size: 18px;
+  }
 
-            & svg {
-                width: 16px;
-            }
-        }
-    }
-`
+  & h1 {
+    font-size: 16px;
+    font-weight: 600;
+    text-transform: uppercase;
+  }
+`;
 
-const CardLogin = ({ id, nomeSite, login, senha, obs, onRemove }) => {
-    const [isEditing, setIsEditing] = useState(false);
-    const [updatedLogin, setUpdatedLogin] = useState({ login, senha });
+const Google = styled.span`
+  position: absolute;
+  width: max-content;
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-start;
+  top: 15px;
+  right: 5px;
+  font-size: 12px;
+  background-color: #000000;
+  padding: 5px;
+  color: #fff;
+`;
 
-    const handleSave = async () => {
-        await editLogin("default", id, updatedLogin);
-        setIsEditing(false);
-    };
+const Empresa = styled.span`
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  top: 15px;
+  right: 30px;
+  font-size: 8px;
+  color: #fff;
+  font-weight: 600;
+  border: 1px solid #00000020;
 
-    return (
-        <Card>
-            <div>
-                <h1>{nomeSite}</h1>
-                <span>{obs}</span>
-            </div>
-            <label>
-                <span>Login</span>
-                {isEditing ? (
-                    <input
-                        type="text"
-                        value={updatedLogin.login}
-                        onChange={(e) => setUpdatedLogin({ ...updatedLogin, login: e.target.value })}
-                    />
-                ) : (
-                    <p>{login}</p>
-                )}
-            </label>
-            <label>
-                <span>Senha</span>
-                {isEditing ? (
-                    <input
-                        type="text"
-                        value={updatedLogin.senha}
-                        onChange={(e) => setUpdatedLogin({ ...updatedLogin, senha: e.target.value })}
-                    />
-                ) : (
-                    <p>{senha}</p>
-                )}
-            </label>
-            <div>
-                {isEditing ? (
-                    <button onClick={handleSave}>Salvar</button>
-                ) : (
-                    <button onClick={() => setIsEditing(true)}>Editar</button>
-                )}
-                <button onClick={onRemove}>Remover</button>
-            </div>
-        </Card>
-    );
+  img {
+    display: block;
+    width: 20px;
+    height: auto;
+  }
+`;
+
+const CardLogin = ({ 
+  nomeSite, 
+  login, 
+  senha, 
+  obs, 
+  onRemove, 
+  onEdit, 
+  empresa, 
+  googleLogin 
+}) => {
+  // Mapeia o nome da rede para o respectivo ícone
+  const socialIcons = {
+    semlogo: <FaLink />,
+    linkedin: <FaLinkedin />,
+    instagram: <FaInstagram />,
+    youtube: <FaYoutube />,
+    facebook: <FaFacebook />,
+    behance: <FaBehance />,
+    cpanel: <FaCpanel />,
+    figma: <FaFigma />,
+    github: <FaGithub />,
+    drive: <FaGoogleDrive />,
+    google: <FaGoogle />,
+    mailchimp: <FaMailchimp />,
+    pinterest: <FaPinterest />,
+    shopify: <FaShopify />,
+    spotify: <FaSpotify />,
+    tiktok: <FaTiktok />,
+    wordpress: <FaWordpress />,
+    vercel: <IoLogoVercel />,
+    meta: <FaMeta />,
+    googleads: <SiGoogleads />,
+    linktree: <PiLinktreeLogo />,
+    zapier: <SiZapier />,
+  };
+
+  return (
+    <Card>
+      <CardTitle>
+        <h1>{nomeSite}</h1>
+        {obs && socialIcons[obs] ? socialIcons[obs] : null}
+      </CardTitle>
+      
+      {/* Só mostra o ícone do Google se googleLogin === true */}
+      {googleLogin && (
+        <Google>
+          <FcGoogle />
+        </Google>
+      )}
+
+      {/* Só mostra a logo da empresa se houver empresa selecionada e houver imagem no objeto */}
+      {empresa && companyLogos[empresa] && (
+        <Empresa>
+          <img src={companyLogos[empresa]} alt={empresa} />
+        </Empresa>
+      )}
+
+      <label>
+        <span>Login</span>
+        <p>{login}</p>
+      </label>
+      <label>
+        <span>Senha</span>
+        <p>{senha}</p>
+      </label>
+      <div>
+        <button onClick={onEdit}>Editar</button>
+        <button onClick={onRemove}>Excluir</button>
+      </div>
+    </Card>
+  );
 };
 
 export default CardLogin;
