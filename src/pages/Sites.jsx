@@ -2,10 +2,8 @@ import React, { useState, useEffect } from "react";
 import styled from "styled-components";
 import { collection, getDocs, deleteDoc, doc, updateDoc, addDoc } from "firebase/firestore";
 import { getDatabase } from "../../firebaseConfig";
-import CardSite from "../components/CardSites";
 import { toast } from "react-toastify"; // Função toast do React Toastify
 import { IoIosSearch } from "react-icons/io";
-import { FaCheckCircle, FaTimesCircle } from "react-icons/fa";
 import { IoCheckmarkOutline, IoCloseOutline } from "react-icons/io5";
 
 // Objeto com as empresas e suas respectivas logos
@@ -19,14 +17,16 @@ const companyLogos = {
 };
 
 const Content = styled.div`
-  padding: 2.5%;
+  padding: 0 2.5% 2.5% 2.5%;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  justify-content: center;
+  justify-content: flex-start;
   gap: 10px;
   width: 100%;
   overflow-y: auto;
+  max-height: 80vh;
+  position: relative;
 
   & h1 {
     font-weight: 600;
@@ -40,6 +40,11 @@ const Top = styled.div`
   justify-content: space-between;
   border-bottom: 1px solid #00000050;
   padding: 10px 0;
+  position: sticky;
+  top: 0;
+  background-color: #ffffff;
+  box-shadow: 0 0 50px rgba(255,255,255, 1);
+  z-index: 1;
 
   & button {
     padding: 5px 15px;
@@ -457,7 +462,8 @@ const CheckboxContainer = styled.label`
 // Modal para adicionar/editar site – removido o campo de logo manual e mantida apenas a seleção de empresa, tipo e status
 const EditModalSite = ({ siteData, onSave, onCancel }) => {
   // Define o active padrão como true, caso não exista
-  const [formValues, setFormValues] = useState({ active: true, ...siteData });
+  const [formValues, setFormValues] = useState({ active: true, url: "https://", ...siteData });
+
 
   const handleFieldChange = (e) => {
     const { name, value } = e.target;
@@ -474,7 +480,7 @@ const EditModalSite = ({ siteData, onSave, onCancel }) => {
   };
 
   return (
-    <ModalOverlay>
+    <ModalOverlay style={{ zIndex: "10"}}>
       <ModalContent>
         <h2>{formValues.id ? "Editar Site" : "Adicionar Site"}</h2>
         <form onSubmit={handleSubmit}>
