@@ -5,6 +5,18 @@ import { getDatabase } from "../../firebaseConfig";
 import CardSite from "../components/CardSites";
 import { toast } from "react-toastify"; // Função toast do React Toastify
 import { IoIosSearch } from "react-icons/io";
+import { FaCheckCircle, FaTimesCircle } from "react-icons/fa";
+import { IoCheckmarkOutline, IoCloseOutline } from "react-icons/io5";
+
+// Objeto com as empresas e suas respectivas logos
+const companyLogos = {
+  "Nova Metálica": "https://imagedelivery.net/1n9Gwvykoj9c9m8C_4GsGA/40b3886f-6f2c-466e-88f5-6af0faa43a00/public", 
+  "Fast Sistemas Construtivos": "https://imagedelivery.net/1n9Gwvykoj9c9m8C_4GsGA/ab2d9dea-3941-4e10-9c18-e421dbf99700/public",
+  "Fast Homes": "https://imagedelivery.net/1n9Gwvykoj9c9m8C_4GsGA/e4c70620-1eb2-4aa5-cc40-cae32ffdec00/public",
+  "Pousada Le Ange": "https://imagedelivery.net/1n9Gwvykoj9c9m8C_4GsGA/8dca7e66-ce93-48a8-b05b-7c8fd4fc6600/public",
+  "Milena": "https://imagedelivery.net/1n9Gwvykoj9c9m8C_4GsGA/848a015b-f90f-4079-e0f0-f99e09cde000/public",
+  "Unity": "https://imagedelivery.net/1n9Gwvykoj9c9m8C_4GsGA/c9f7b8c5-3736-4ac4-0d0b-97bf217b5100/public"
+};
 
 const Content = styled.div`
   padding: 2.5%;
@@ -36,6 +48,11 @@ const Top = styled.div`
     color: #fff;
     cursor: pointer;
     font-size: 14px;
+    transition: all 0.1s ease-out;
+    &:hover {
+      background-color: #00ff2a1f;
+      color: #000;
+    }
   }
 `;
 
@@ -45,7 +62,30 @@ const TopLeft = styled.div`
   gap: 10px;
 `;
 
+// Input de busca
+const SearchInput = styled.input`
+  padding: 5px;
+  font-size: 14px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+`;
+
+// Select para filtrar por empresa no componente principal
+const SelectFilter = styled.select`
+  padding: 5px;
+  font-size: 14px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+`;
+
 const FilterContainer = styled.div`
+  width: auto;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin: 10px 0;
+
+  & div {
     display: flex;
     align-items: center;
     justify-content: center;
@@ -53,7 +93,7 @@ const FilterContainer = styled.div`
     width: auto;
     height: auto;
     border: 1px solid #00000050;
-    padding: 5px;
+    padding: 0 5px;
 
     & svg {
       display: flex;
@@ -65,7 +105,16 @@ const FilterContainer = styled.div`
 
     & input {
       font-size: 12px;
+      border: none;
     }
+  }
+
+  & select {
+    padding: 5px;
+    font-size: 12px;
+    border: 1px solid #00000050;
+    border-radius: 0;
+  }
 `;
 
 const Container = styled.div`
@@ -98,6 +147,14 @@ const ModalContent = styled.div`
   max-height: 80vh;
   overflow: auto;
 
+  & h2 {
+    font-size: 22px;
+    font-weight: 600;
+    background: linear-gradient(90deg, #bd0a0a, #2e2d2d, #003aa7);
+    -webkit-background-clip: text;
+    color: transparent;
+  }
+
   & button {
     padding: 5px 15px;
     background-color: #000000;
@@ -107,21 +164,17 @@ const ModalContent = styled.div`
     font-size: 14px;
   }
 
-  & article {
-    & h2 {
-      font-size: 22px;
-      font-weight: 600;
-      color: transparent;
-      background: linear-gradient(90deg, #bd0a0a, #2e2d2d, #003aa7);
-      -webkit-background-clip: text;
-    }
+  & article h2 {
+    font-size: 22px;
+    font-weight: 600;
+    background: linear-gradient(90deg, #bd0a0a, #2e2d2d, #003aa7);
+    -webkit-background-clip: text;
+    color: transparent;
   }
 
   & form {
     display: flex;
     flex-direction: column;
-    align-items: flex-start;
-    justify-content: center;
     gap: 20px;
     margin-top: 30px;
 
@@ -132,37 +185,28 @@ const ModalContent = styled.div`
       width: 100%;
       display: flex;
       flex-direction: column;
-      align-items: flex-start;
-      justify-content: flex-start;
       gap: 10px;
 
-      & input {
+      & input,
+      & select {
         width: 100%;
       }
 
       & span {
         background: #fff;
         padding: 2px 5px;
+        position: absolute;
         top: -10px;
         left: 5px;
-        position: absolute;
         font-size: 12px;
         font-weight: 600;
         color: #00000080;
       }
-
-      & p {
-        font-size: 14px;
-        color: #000;
-      }
     }
 
     & div {
-      width: 100%;
       display: flex;
       flex-direction: column;
-      align-items: flex-start;
-      justify-content: center;
       gap: 10px;
 
       & button {
@@ -180,8 +224,6 @@ const ModalContent = styled.div`
 const ModalExcluir = styled.div`
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
-  justify-content: center;
   background-color: #fff;
   width: 500px;
   padding: 20px;
@@ -189,9 +231,8 @@ const ModalExcluir = styled.div`
   & h2 {
     font-size: 18px;
     font-weight: 600;
-    width: 100%;
     border-bottom: 1px solid #00000020;
-    padding: 5px 0 5px 0;
+    padding: 5px 0;
   }
 
   & p {
@@ -201,8 +242,6 @@ const ModalExcluir = styled.div`
 
   & div {
     display: flex;
-    align-items: flex-start;
-    justify-content: center;
     gap: 10px;
     padding: 10px 0;
 
@@ -212,7 +251,6 @@ const ModalExcluir = styled.div`
       border: 1px solid #000;
       text-transform: uppercase;
       font-size: 15px;
-
       &:nth-child(1) {
         background-color: #cf0a0a;
         color: #fff;
@@ -234,43 +272,21 @@ const AddButton = styled.button`
 
 const Card = styled.div`
   border: 1px solid #00000050;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  justify-content: flex-start;
-  gap: 10px;
-  width: auto;
   padding: 10px;
-
-  & div {
-    display: flex;
-    align-items: flex-start;
-    justify-content: flex-start;
-    gap: 10px;
-
-    & button {
-      padding: 3px 10px;
-      cursor: pointer;
-      font-size: 14px;
-      border: 1px solid #000;
-
-      &:nth-child(1) {
-        background-color: #353535;
-        color: #fff;
-        border-color: #000;
-      }
-
-      &:nth-child(2) {
-        background-color: #fff;
-        color: #000;
-        border-color: #000;
-      }
-    }
-  }
+  display: flex;
+  align-items: flex-start;
+  flex-direction: column;
+  gap: 15px;
+  position: relative;
 
   & img {
+    position: absolute;
+    right: 10px;
+    top: 10px;
     width: auto;
-    height: 30px;
+    padding: 1px;
+    border: 1px solid #00000050;
+    height: 25px;
     object-fit: contain;
   }
 
@@ -281,60 +297,179 @@ const Card = styled.div`
 
   & a {
     font-size: 14px;
-    line-height: 120%;
     color: #008ee0;
-    cursor: pointer;
     text-decoration: none;
     margin-top: -10px;
   }
-`;
 
-const Buttons = styled.div`
-  display: flex !important;
-  align-items: center !important;
-  justify-content: flex-start !important;
-  flex-direction: row !important;
-  gap: 10px;
-  
-  & button {
-    padding: 5px 10px;
-    &:nth-child(1) {
-      background-color: #34b600;
-      border-color: #000;
+  & article {
+    display: flex;
+    width: 100%;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 10px;
+
+    & button {
+      padding: 3px 10px;
+      width: 50%;
+      border: 1px solid #00000050;
+      transition: all 0.1s ease-out;
+      cursor: pointer;
+      font-size: 14px;
+
+      &:nth-child(1) {
+        background-color: #000;
+        color: #fff;
+        &:hover {
+          background-color: #00ff2a1f;
+          color: #000;
+        }
+      }
+
+      &:nth-child(2) {
+        background-color: #fff;
+        &:hover {
+          background-color: #ff00001f;
+          color: #000;
+        }
+      }
     }
   }
 `;
 
-const uploadFileToServer = async (file) => {
-  console.log("Iniciando upload do arquivo:", file);
-  const formData = new FormData();
-  formData.append("file", file);
-  try {
-    const response = await fetch("https://server.unitycompany.com.br/api/upload", {
-      method: "POST",
-      body: formData,
-    });
-    const data = await response.json();
-    console.log("Resposta do upload:", data);
-    return data.url || null;
-  } catch (error) {
-    console.error("Erro no upload:", error);
-    return null;
-  }
-};
+// Novo componente para exibir o status do site (ativo/inativo) no card
+const StatusIcon = styled.div`
+  position: absolute;
+  top: 10px;
+  right: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 25px;
+  padding: 2px;
+  border: 1px solid #00000050;
+  font-size: 18px;
+`;
 
+const Buttons = styled.div`
+  display: flex;
+  flex-direction: row !important;
+  gap: 10px;
+
+  & button {
+    padding: 5px 10px;
+    font-size: 14px;
+    border: 1px solid #000;
+    transition: all 0.1s ease-out;
+    &:nth-child(1) {
+      background-color: #353535;
+      color: #fff;
+    }
+    &:nth-child(2) {
+      background-color: #fff;
+      color: #000;
+    }
+  }
+`;
+
+// Componente para seleção de empresa no modal (exibe as logos com tooltips)
+const CompanySelection = styled.div`
+  width: 100%;
+  display: flex !important;
+  align-items: flex-start;
+  justify-content: flex-start;
+  flex-direction: row !important;
+  gap: 10px;
+  flex-wrap: wrap;
+  height: auto;
+
+  & img {
+    width: auto;
+  }
+`;
+
+const CompanyIcon = styled.img`
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
+  border: ${(props) => (props.selected ? "2px solid #000" : "1px solid #00000030")};
+  opacity: ${(props) => (props.selected ? "1" : "0.8")};
+  cursor: pointer;
+  transition: all 0.2s ease-out;
+  &:hover {
+    background-color: #00000010;
+  }
+`;
+
+// Estilo do checkbox conforme design fornecido
+const CheckboxContainer = styled.label`
+  position: relative;
+  cursor: pointer;
+  display: flex !important;
+  flex-direction: row !important;
+
+  & p {
+    font-size: 14px;
+    opacity: 0.8;
+  }
+
+  input {
+    width: max-content !important;
+    display: none !important;
+    border: none !important;
+  }
+  svg {
+    overflow: visible;
+    font-size: 10px;
+    top: 0;
+    left: 0;
+    border: none;
+    width: 20px;
+    height: 20px;
+  }
+  .path {
+    fill: none;
+    stroke: #000;
+    stroke-width: 3;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    transition: stroke-dasharray 0.5s ease;
+    stroke-dasharray: 0 0 240 9999999;
+    stroke-dashoffset: 1;
+    transform: scale(-1, 1);
+    transform-origin: center;
+    animation: hi 0.5s;
+  }
+  input:checked ~ svg .path {
+    stroke: #188d00;
+    stroke-width: 5;
+    stroke-dasharray: 0 262 70 9999999;
+    transition-delay: 0s;
+    transform: scale(1, 1);
+    animation: none;
+  }
+  @keyframes hi {
+    0% { stroke-dashoffset: 20; }
+    to { stroke-dashoffset: 1; }
+  }
+`;
+
+// Modal para adicionar/editar site – removido o campo de logo manual e mantida apenas a seleção de empresa, tipo e status
 const EditModalSite = ({ siteData, onSave, onCancel }) => {
-  const [formValues, setFormValues] = useState({ ...siteData });
+  // Define o active padrão como true, caso não exista
+  const [formValues, setFormValues] = useState({ active: true, ...siteData });
 
   const handleFieldChange = (e) => {
     const { name, value } = e.target;
-    console.log(`Alteração no campo ${name}:`, value);
     setFormValues({ ...formValues, [name]: value });
+  };
+
+  const handleCheckboxChange = (e) => {
+    setFormValues({ ...formValues, active: e.target.checked });
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    console.log("Submitting form with values:", formValues);
     onSave(formValues);
   };
 
@@ -344,68 +479,70 @@ const EditModalSite = ({ siteData, onSave, onCancel }) => {
         <h2>{formValues.id ? "Editar Site" : "Adicionar Site"}</h2>
         <form onSubmit={handleSubmit}>
           <label>
-            <span>Nome</span>
-            <input
-              type="text"
+            <span>Tipo de site</span>
+            <select
               name="name"
               value={formValues.name || ""}
               onChange={handleFieldChange}
-              placeholder="Nome do site"
-            />
+            >
+              <option value="">Selecione</option>
+              <option value="Landing Page">Landing Page</option>
+              <option value="E-commerce">E-commerce</option>
+              <option value="Institucional">Institucional</option>
+              <option value="Sistema">Sistema</option>
+              <option value="Outros">Outros</option>
+            </select>
           </label>
           <label>
-            <span>Logo (URL)</span>
-            <input
-              type="text"
-              name="logo"
-              value={formValues.logo || ""}
-              onChange={handleFieldChange}
-              placeholder="Link da imagem do site"
-            />
-            <input
-              type="file"
-              accept="image/*"
-              onChange={async (e) => {
-                const file = e.target.files[0];
-                console.log("Arquivo selecionado para upload:", file);
-                if (file) {
-                  const uploadedUrl = await uploadFileToServer(file);
-                  if (uploadedUrl) {
-                    setFormValues({ ...formValues, logo: uploadedUrl });
-                    console.log("Upload realizado com sucesso, URL:", uploadedUrl);
-                    toast.success("Logo enviada com sucesso!");
-                  } else {
-                    console.error("Falha no upload da logo");
-                    toast.error("Erro ao enviar a logo!");
-                  }
-                }
-              }}
-            />
-            {formValues.logo && (
-              <button type="button" onClick={() => { 
-                console.log("Removendo logo");
-                setFormValues({ ...formValues, logo: "" });
-              }}>
-                Remover Logo
-              </button>
-            )}
-          </label>
-          <label>
-            <span>URL</span>
+            <span>Acesso via URL</span>
             <input
               type="text"
               name="url"
               value={formValues.url || ""}
               onChange={handleFieldChange}
-              placeholder="URL do site (ex.: https://seusite.com)"
+              placeholder="(ex.: https://seusite.com)"
             />
+          </label>
+          {/* Seleção de empresa: ao clicar em um ícone, define a empresa e a logo automaticamente */}
+          <label>
+            <span>Empresa</span>
+            <CompanySelection>
+              {Object.entries(companyLogos).map(([key, url]) => (
+                <CompanyIcon
+                  key={key}
+                  src={url}
+                  alt={key}
+                  title={key}
+                  selected={formValues.empresa === key}
+                  onClick={() =>
+                    setFormValues({ ...formValues, empresa: key, logo: url })
+                  }
+                />
+              ))}
+            </CompanySelection>
+          </label>
+          {/* Checkbox para definir se o site está ativo */}
+          <label>
+            <span>Status</span>
+            <CheckboxContainer>
+              <p>O site está ativo ou inativo?</p>
+              <input
+                type="checkbox"
+                name="active"
+                checked={formValues.active}
+                onChange={handleCheckboxChange}
+              />
+              <svg viewBox="0 0 64 64">
+                <path
+                  d="M 0 16 V 56 A 8 8 90 0 0 8 64 H 56 A 8 8 90 0 0 64 56 V 8 A 8 8 90 0 0 56 0 H 8 A 8 8 90 0 0 0 8 V 16 L 32 48 L 64 16 V 8 A 8 8 90 0 0 56 0 H 8 A 8 8 90 0 0 0 8 V 56 A 8 8 90 0 0 8 64 H 56 A 8 8 90 0 0 64 56 V 16"
+                  className="path"
+                ></path>
+              </svg>
+            </CheckboxContainer>
           </label>
           <Buttons>
             <button type="submit">Salvar</button>
-            <button type="button" onClick={() => {
-              console.log("Cancelando ação no modal");
-              onCancel();
-            }}>
+            <button type="button" onClick={onCancel}>
               Cancelar
             </button>
           </Buttons>
@@ -422,18 +559,8 @@ const ConfirmDeleteModal = ({ onConfirm, onCancel }) => {
         <h2>Confirmar Exclusão</h2>
         <p>Tem certeza que deseja excluir este site?</p>
         <Buttons>
-          <button onClick={() => { 
-            console.log("Confirmando exclusão do site");
-            onConfirm();
-          }}>
-            Confirmar
-          </button>
-          <button onClick={() => { 
-            console.log("Cancelando exclusão");
-            onCancel();
-          }}>
-            Cancelar
-          </button>
+          <button onClick={onConfirm}>Confirmar</button>
+          <button onClick={onCancel}>Cancelar</button>
         </Buttons>
       </ModalExcluir>
     </ModalOverlay>
@@ -446,19 +573,19 @@ const Sites = () => {
   const [editingSite, setEditingSite] = useState(null);
   const [deleteSiteId, setDeleteSiteId] = useState(null);
   const [isAdding, setIsAdding] = useState(false);
-  // Estado para a busca pelo nome do site
+  // Estado para busca pelo nome
   const [searchTerm, setSearchTerm] = useState("");
+  // Estado para filtrar por empresa
+  const [empresaFilter, setEmpresaFilter] = useState("");
 
   const db = getDatabase();
 
   const fetchSites = async () => {
     setLoading(true);
     try {
-      console.log("Buscando sites...");
       const colRef = collection(db, "sites");
       const snapshot = await getDocs(colRef);
       const items = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
-      console.log("Sites buscados:", items);
       setSites(items);
     } catch (error) {
       console.error("Erro ao buscar sites:", error);
@@ -472,17 +599,17 @@ const Sites = () => {
     fetchSites();
   }, []);
 
-  const filteredSites = sites.filter((site) =>
-    site.name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredSites = sites.filter((site) => {
+    const matchesName = (site.name || "").toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesEmpresa = empresaFilter ? site.empresa === empresaFilter : true;
+    return matchesName && matchesEmpresa;
+  });
 
   const handleDelete = async (id) => {
     try {
-      console.log("Iniciando exclusão do site com id:", id);
       await deleteDoc(doc(db, "sites", id));
       setDeleteSiteId(null);
       await fetchSites();
-      console.log("Site excluído com sucesso!");
       toast.info("Site excluído com sucesso!");
     } catch (error) {
       console.error("Erro ao excluir site:", error);
@@ -492,11 +619,9 @@ const Sites = () => {
 
   const handleEditSave = async (updatedSite) => {
     try {
-      console.log("Iniciando atualização do site:", updatedSite);
       await updateDoc(doc(db, "sites", updatedSite.id), updatedSite);
       setEditingSite(null);
       await fetchSites();
-      console.log("Site atualizado com sucesso!");
       toast.success("Site atualizado com sucesso!");
     } catch (error) {
       console.error("Erro ao atualizar site:", error);
@@ -505,12 +630,10 @@ const Sites = () => {
   };
 
   const handleAddSave = async (newSite) => {
-    console.log("handleAddSave chamado com:", newSite);
     try {
       await addDoc(collection(db, "sites"), newSite);
       setIsAdding(false);
       await fetchSites();
-      console.log("Site adicionado com sucesso!");
       toast.success("Site adicionado com sucesso!");
     } catch (error) {
       console.error("Erro ao adicionar site:", error);
@@ -521,26 +644,31 @@ const Sites = () => {
   return (
     <Content>
       <Top>
-        <TopLeft>
           <h1>Sites - Unity Company</h1>
-          
-        </TopLeft>
-        <FilterContainer>
-          <IoIosSearch />
-          <input
-              type="text"
-              placeholder="Buscar site pelo nome"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-        </FilterContainer>
-        
-        <button onClick={() => { 
-          console.log("Abrindo modal para adicionar novo site");
-          setIsAdding(true);
-        }}>
-          Adicionar novo site
-        </button>
+          <FilterContainer>
+            <div>
+              <IoIosSearch />
+              <SearchInput
+                type="text"
+                placeholder="Buscar site pelo nome"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+            
+            <SelectFilter
+              value={empresaFilter}
+              onChange={(e) => setEmpresaFilter(e.target.value)}
+            >
+              <option value="">Todas as Empresas</option>
+              {Object.keys(companyLogos).map((key) => (
+                <option key={key} value={key}>
+                  {key}
+                </option>
+              ))}
+            </SelectFilter>
+          </FilterContainer>
+        <button onClick={() => setIsAdding(true)}>Adicionar novo site</button>
       </Top>
       <Container>
         {loading ? (
@@ -548,57 +676,56 @@ const Sites = () => {
         ) : (
           filteredSites.map((site) => (
             <Card key={site.id}>
-              <img src={site.logo} alt={site.name} />
+              <img
+                src={site.empresa ? companyLogos[site.empresa] : site.logo}
+                alt={site.name}
+                title={site.empresa ? site.empresa : ""}
+              />
               <h2>{site.name}</h2>
               <a href={site.url} target="_blank" rel="noopener noreferrer">
                 {site.url}
               </a>
-              <div>
-                <button onClick={() => {
-                  console.log("Abrindo modal para editar o site:", site);
-                  setEditingSite(site);
-                  setIsAdding(false);
-                }}>
+              <article>
+                <button
+                  onClick={() => {
+                    setEditingSite(site);
+                    setIsAdding(false);
+                  }}
+                >
                   Editar
                 </button>
-                <button onClick={() => {
-                  console.log("Solicitando exclusão do site com id:", site.id);
-                  setDeleteSiteId(site.id);
-                }}>
-                  Excluir
-                </button>
-              </div>
+                <button onClick={() => setDeleteSiteId(site.id)}>Excluir</button>
+              </article>
+              {/* Exibe o status do site: ícone verde se ativo, vermelho se inativo */}
+              <StatusIcon>
+                {site.active ? (
+                  <IoCheckmarkOutline color="green" />
+                ) : (
+                  <IoCloseOutline color="red" />
+                )}
+              </StatusIcon>
             </Card>
           ))
         )}
       </Container>
       {isAdding && (
         <EditModalSite
-          siteData={{}}
+          siteData={{ active: true }}
           onSave={handleAddSave}
-          onCancel={() => {
-            console.log("Cancelando adição de novo site");
-            setIsAdding(false);
-          }}
+          onCancel={() => setIsAdding(false)}
         />
       )}
       {editingSite && (
         <EditModalSite
           siteData={editingSite}
           onSave={handleEditSave}
-          onCancel={() => {
-            console.log("Cancelando edição do site");
-            setEditingSite(null);
-          }}
+          onCancel={() => setEditingSite(null)}
         />
       )}
       {deleteSiteId && (
         <ConfirmDeleteModal
           onConfirm={() => handleDelete(deleteSiteId)}
-          onCancel={() => {
-            console.log("Cancelando exclusão do site");
-            setDeleteSiteId(null);
-          }}
+          onCancel={() => setDeleteSiteId(null)}
         />
       )}
     </Content>

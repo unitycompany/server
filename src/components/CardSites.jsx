@@ -1,13 +1,13 @@
 import React from "react";
 import styled from "styled-components";
 
+
 const Card = styled.div`
-  border: 1px solid red;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
   justify-content: flex-start;
-  gap: 10px;
+  gap: 25px;
   max-width: 300px;
   padding: 15px;
 
@@ -34,7 +34,7 @@ const Card = styled.div`
 const CardSite = ({ logo, name, url }) => {
   return (
     <Card>
-      <img src={logo} alt={name} />
+      <img src="{logo}" alt={name} />
       <h2>{name} Institucional Fast</h2>
       <a href={url} target="_blank" rel="noopener noreferrer">
         {url}
