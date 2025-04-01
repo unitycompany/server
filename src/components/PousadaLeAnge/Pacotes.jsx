@@ -1,10 +1,11 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import styled from "styled-components";
 import InputMask from "react-input-mask";
 import { collection, getDocs, deleteDoc, doc, updateDoc, addDoc } from "firebase/firestore";
 import { getDatabase } from "../../../firebaseConfig"; // ajuste o caminho conforme necessário
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import Joyride from 'react-joyride';
 
 const Content = styled.div``;
 
@@ -103,9 +104,9 @@ const ModalContent = styled.div`
   background: #fff;
   padding: 30px;
   width: 90%;
-  max-width: 600px;
+  max-width: 650px;
   position: relative;
-  max-height: 80vh;
+  max-height: 85vh;
   overflow: auto;
 
   & article {
@@ -236,6 +237,25 @@ const AddButton = styled.button`
   font-size: 16px;
 `;
 
+const FloatingButton = styled.button`
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  background-color: #34b600;
+  color: #fff;
+  border: none;
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 10000;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+`;
+
+
 // Função para formatar uma data (objeto Date) como "dd/mm/aaaa"
 const formatDate = (date) => {
   if (!date) return "";
@@ -268,6 +288,50 @@ const formatCardDates = (dataEntrada, dataSaida) => {
 // -------------------------
 // Componente do Modal de Edição / Adição para Pacotes
 // -------------------------
+
+const modalSteps = [
+  {
+    target: ".nome", // Alterado para incluir o ponto
+    content: "Nome do pacote, por exemplo 'Noite de Pizzas'",
+  },
+  {
+    target: ".categoria",
+    content: "Selecione a categoria do pacote",
+  },
+  {
+    target: ".entrada",
+    content: "Defina a data de entrada",
+  },
+  {
+    target: ".saida",
+    content: "Defina a data de saida",
+  },
+  {
+    target: ".periodo",
+    content: "Aqui não será necessário manipular, ele já vai funcionar diretamente como deve ficar",
+  },
+  {
+    target: ".imagem",
+    content: "Aqui você irá adicionar a imagem do pacote",
+  },
+  {
+    target: ".topicos",
+    content: "Os tópicos já estarão pré definidos, será necessários manipular apenas o Tópico 3, definindo a data do evento que irá ocorrer, (ex.: 27/04 Noite de Pizzas)",
+  },
+  {
+    target: ".suites",
+    content: "As suités estarão manipuláveis aqui, você terá que definir as parcelas minimas, é necessário apenas clicar e selecionar. No preço minimo você digitará o valor de acordo com a parcela",
+  },
+  {
+    target: ".salvar",
+    content: "Após colocar as informações, clique aqui para salvar",
+  },
+  {
+    target: ".cancelar",
+    content: "Caso desista, clique aqui para cancelar",
+  },
+];
+
 const EditModal = ({ eventData, onSave, onCancel }) => {
   // Nomes padrão das 3 suites
   const defaultSuites = [
@@ -342,15 +406,46 @@ const EditModal = ({ eventData, onSave, onCancel }) => {
     });
   };
 
+  const [runTour, setRunTour] = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setRunTour(true), 100);
+    return () => clearTimeout(timer);
+  })
+
+
   return (
     <ModalOverlay>
       <ModalContent>
+        <Joyride 
+          steps={modalSteps} 
+          continuous 
+          showSkipButton 
+          run={runTour}
+          locale={{
+            skip: "Pular tutorial",
+            back: "Voltar",
+            next: "Próximo",
+            last: "Encerrar tutorial",
+          }}
+          styles={{ 
+            options: {
+               zIndex: 999999 
+              },
+            spotlight: {
+              marginTop: '55px',
+              boxShadow: '0 0 10px rgba(0, 0, 0, 0.2)',
+            }
+          }}
+          callback={(data) => console.log("Joyride callback", data)}
+        />
+        
         <article>
           <h2>{formValues.id ? "Editar Pacote" : "Adicionar Pacote"}</h2>
         </article>
         <form onSubmit={handleSubmit}>
-          <label>
-            <span>Nome do Pacote</span>
+          <label className="nome">
+            <span >Nome do Pacote</span>
             <input
               type="text"
               name="title"
@@ -359,8 +454,8 @@ const EditModal = ({ eventData, onSave, onCancel }) => {
               placeholder="Noite de Pizzas"
             />
           </label>
-          <label>
-            <span>Categoria</span>
+          <label className="categoria">
+            <span >Categoria</span>
             <select
               name="categorias"
               value={formValues.categorias || ""}
@@ -372,7 +467,7 @@ const EditModal = ({ eventData, onSave, onCancel }) => {
               <option value="Promoções">Promoções</option>
             </select>
           </label>
-          <label>
+          <label className="entrada">
             <span>Data de Entrada</span>
             <InputMask
               mask="99/99/9999"
@@ -382,7 +477,7 @@ const EditModal = ({ eventData, onSave, onCancel }) => {
               placeholder="dd/mm/aaaa"
             />
           </label>
-          <label>
+          <label className="saida">
             <span>Data de Saída</span>
             <InputMask
               mask="99/99/9999"
@@ -393,11 +488,11 @@ const EditModal = ({ eventData, onSave, onCancel }) => {
             />
           </label>
           {/* Preview dinâmico do período */}
-          <label>
+          <label className="periodo">
             <span>Período</span>
             <input type="text" readOnly value={computedDescription} />
           </label>
-          <label>
+          <label className="imagem">
             <span>Imagem (URL)</span>
             <input
               type="text"
@@ -425,7 +520,7 @@ const EditModal = ({ eventData, onSave, onCancel }) => {
               </button>
             )}
           </label>
-          <div>
+          <div className="topicos">
             <h3>Tópicos</h3>
             {[0, 1, 2].map((i) => (
               <label key={i}>
@@ -439,7 +534,7 @@ const EditModal = ({ eventData, onSave, onCancel }) => {
               </label>
             ))}
           </div>
-          <div>
+          <div className="suites">
             <h3>Suites</h3>
             {[0, 1, 2].map((i) => {
               const suite = formValues.suites[i] || { name: "", parcel: "", price: "" };
@@ -477,8 +572,8 @@ const EditModal = ({ eventData, onSave, onCancel }) => {
             })}
           </div>
           <Buttons>
-            <button type="submit">Salvar</button>
-            <button type="button" onClick={onCancel}>
+            <button className="salvar" type="submit">Salvar</button>
+            <button className="cancelar" type="button" onClick={onCancel}>
               Cancelar
             </button>
           </Buttons>
@@ -599,6 +694,7 @@ const Pacotes = () => {
         </div>
         <article>
           <button
+            className="editar"
             onClick={() => {
               setEditingEvent(event);
               setIsAdding(false);
@@ -606,7 +702,7 @@ const Pacotes = () => {
           >
             Editar
           </button>
-          <button onClick={() => setDeleteEventId(event.id)}>Excluir</button>
+          <button className="excluir" onClick={() => setDeleteEventId(event.id)}>Excluir</button>
         </article>
       </Card>
     );
@@ -620,6 +716,7 @@ const Pacotes = () => {
         <>
           <div style={{ marginBottom: "20px" }}>
             <AddButton
+              className="adicionar"
               onClick={() => {
                 setIsAdding(true);
                 setEditingEvent(null);
