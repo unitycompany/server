@@ -136,9 +136,16 @@ const ModalContent = styled.div`
       width: 100%;
 
       & input,
+      & textarea,
       & select {
         width: 100%;
         padding: 5px;
+        color: #000;
+
+        &::placeholder{
+          color: #000;
+          opacity: 0.3;
+        }
       }
 
       & span {
@@ -149,7 +156,7 @@ const ModalContent = styled.div`
         left: 5px;
         font-size: 12px;
         font-weight: 600;
-        color: #00000080;
+        color: #00000090;
       }
 
       & p {
@@ -501,7 +508,7 @@ const EditModal = ({ eventData, onSave, onCancel }) => {
                 value={formValues.payment || ""}
                 onChange={handleFieldChange}
               >
-                <option value="">Selecione</option>
+                <option value="">Selecione a parcela mínima</option>
                 {[8, 9, 10, 11, 12].map((num) => (
                   <option key={num} value={num}>
                     {num}x
@@ -551,10 +558,10 @@ const EditModal = ({ eventData, onSave, onCancel }) => {
               </div>
             ))}
           </div>
-          <div className="Buttons">
+          <Buttons>
             <button className="salvar" type="submit">Salvar</button>
             <button className="cancelar" type="button" onClick={onCancel}>Cancelar</button>
-          </div>
+          </Buttons>
         </form>
       </ModalContent>
     </ModalOverlay>

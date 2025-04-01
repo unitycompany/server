@@ -6,6 +6,21 @@ import { getDatabase } from "../../../firebaseConfig"; // ajuste o caminho confo
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import Joyride from 'react-joyride';
+import { FaCheck } from "react-icons/fa";
+
+// Container para inputs que permite posicionar o ícone de check
+const InputContainer = styled.div`
+  position: relative;
+`;
+
+// Ícone de check posicionado à direita
+const CheckIconStyled = styled(FaCheck)`
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: green;
+`;
 
 const Content = styled.div``;
 
@@ -109,14 +124,12 @@ const ModalContent = styled.div`
   max-height: 85vh;
   overflow: auto;
 
-  & article {
-    & h2 {
-      font-size: 22px;
-      font-weight: 600;
-      color: transparent;
-      background: linear-gradient(90deg, #bd0a0a, #2e2d2d, #003aa7);
-      -webkit-background-clip: text;
-    }
+  & article h2 {
+    font-size: 22px;
+    font-weight: 600;
+    color: transparent;
+    background: linear-gradient(90deg, #bd0a0a, #2e2d2d, #003aa7);
+    -webkit-background-clip: text;
   }
 
   & form {
@@ -138,6 +151,12 @@ const ModalContent = styled.div`
       & select {
         width: 100%;
         padding: 5px;
+        color: #000;
+
+        &::placeholder{
+          color: #000;
+          opacity: 0.3;
+        }
       }
 
       & span {
@@ -148,7 +167,7 @@ const ModalContent = styled.div`
         position: absolute;
         font-size: 12px;
         font-weight: 600;
-        color: #00000080;
+        color: #00000090;
       }
     }
 
@@ -236,25 +255,6 @@ const AddButton = styled.button`
   cursor: pointer;
   font-size: 16px;
 `;
-
-const FloatingButton = styled.button`
-  position: fixed;
-  bottom: 20px;
-  right: 20px;
-  background-color: #34b600;
-  color: #fff;
-  border: none;
-  width: 50px;
-  height: 50px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  z-index: 10000;
-  box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
-`;
-
 
 // Função para formatar uma data (objeto Date) como "dd/mm/aaaa"
 const formatDate = (date) => {
@@ -355,7 +355,16 @@ const EditModal = ({ eventData, onSave, onCancel }) => {
   const initialDataEntrada = eventData.dataEntrada || "";
   const initialDataSaida = eventData.dataSaida || "";
 
-  const initialTopics = eventData.topics || ["", "", ""];
+  // Define os tópicos com os dois primeiros preenchidos por padrão
+  const defaultTopics = [
+    "Taxa pet free (não cobramos por pet)",
+    "Todas as refeições incluídas",
+    ""
+  ];
+
+  const initialTopics = eventData.topics && eventData.topics.length === 3
+    ? eventData.topics
+    : defaultTopics;
 
   const [formValues, setFormValues] = useState({
     ...eventData,
@@ -445,62 +454,79 @@ const EditModal = ({ eventData, onSave, onCancel }) => {
         </article>
         <form onSubmit={handleSubmit}>
           <label className="nome">
-            <span >Nome do Pacote</span>
-            <input
-              type="text"
-              name="title"
-              value={formValues.title || ""}
-              onChange={handleFieldChange}
-              placeholder="Noite de Pizzas"
-            />
+            <span>Nome do Pacote</span>
+            <InputContainer>
+              <input
+                type="text"
+                name="title"
+                value={formValues.title || ""}
+                onChange={handleFieldChange}
+                placeholder="Noite de Pizzas"
+              />
+              {formValues.title && formValues.title.trim() !== "" && <CheckIconStyled size={16} />}
+            </InputContainer>
           </label>
           <label className="categoria">
-            <span >Categoria</span>
-            <select
-              name="categorias"
-              value={formValues.categorias || ""}
-              onChange={handleFieldChange}
-            >
-              <option value="">Selecione</option>
-              <option value="Feriados">Feriados</option>
-              <option value="Programações Especiais">Programações Especiais</option>
-              <option value="Promoções">Promoções</option>
-            </select>
+            <span>Categoria</span>
+            <InputContainer>
+              <select
+                name="categorias"
+                value={formValues.categorias || ""}
+                onChange={handleFieldChange}
+              >
+                <option value="">Selecione a categoria</option>
+                <option value="Feriados">Feriados</option>
+                <option value="Programações Especiais">Programações Especiais</option>
+                <option value="Promoções">Promoções</option>
+              </select>
+              {formValues.categorias && formValues.categorias !== "" && <CheckIconStyled size={16} />}
+            </InputContainer>
           </label>
           <label className="entrada">
             <span>Data de Entrada</span>
-            <InputMask
-              mask="99/99/9999"
-              name="dataEntrada"
-              value={formValues.dataEntrada}
-              onChange={handleFieldChange}
-              placeholder="dd/mm/aaaa"
-            />
+            <InputContainer>
+              <InputMask
+                mask="99/99/9999"
+                name="dataEntrada"
+                value={formValues.dataEntrada}
+                onChange={handleFieldChange}
+                placeholder="dd/mm/aaaa"
+              />
+              {formValues.dataEntrada && formValues.dataEntrada.trim() !== "" && <CheckIconStyled size={16} />}
+            </InputContainer>
           </label>
           <label className="saida">
             <span>Data de Saída</span>
-            <InputMask
-              mask="99/99/9999"
-              name="dataSaida"
-              value={formValues.dataSaida}
-              onChange={handleFieldChange}
-              placeholder="dd/mm/aaaa"
-            />
+            <InputContainer>
+              <InputMask
+                mask="99/99/9999"
+                name="dataSaida"
+                value={formValues.dataSaida}
+                onChange={handleFieldChange}
+                placeholder="dd/mm/aaaa"
+              />
+              {formValues.dataSaida && formValues.dataSaida.trim() !== "" && <CheckIconStyled size={16} />}
+            </InputContainer>
           </label>
-          {/* Preview dinâmico do período */}
           <label className="periodo">
             <span>Período</span>
-            <input type="text" readOnly value={computedDescription} />
+            <InputContainer>
+              <input type="text" readOnly value={computedDescription} />
+              {computedDescription && computedDescription.trim() !== "" && <CheckIconStyled size={16} />}
+            </InputContainer>
           </label>
           <label className="imagem">
             <span>Imagem (URL)</span>
-            <input
-              type="text"
-              name="imagem"
-              value={formValues.imagem || ""}
-              onChange={handleFieldChange}
-              placeholder="URL da imagem do pacote"
-            />
+            <InputContainer>
+              <input
+                type="text"
+                name="imagem"
+                value={formValues.imagem || ""}
+                onChange={handleFieldChange}
+                placeholder="URL da imagem do pacote"
+              />
+              {formValues.imagem && formValues.imagem.trim() !== "" && <CheckIconStyled size={16} />}
+            </InputContainer>
             <input
               type="file"
               accept="image/*"
@@ -525,12 +551,15 @@ const EditModal = ({ eventData, onSave, onCancel }) => {
             {[0, 1, 2].map((i) => (
               <label key={i}>
                 <span>Tópico {i + 1}:</span>
-                <input
-                  type="text"
-                  value={formValues.topics[i] || ""}
-                  onChange={(e) => handleTopicChange(i, e.target.value)}
-                  placeholder={`Tópico ${i + 1}`}
-                />
+                <InputContainer>
+                  <input
+                    type="text"
+                    value={formValues.topics[i] || ""}
+                    onChange={(e) => handleTopicChange(i, e.target.value)}
+                    placeholder={`Tópico ${i + 1}`}
+                  />
+                  {formValues.topics[i] && formValues.topics[i].trim() !== "" && <CheckIconStyled size={16} />}
+                </InputContainer>
               </label>
             ))}
           </div>
@@ -542,30 +571,39 @@ const EditModal = ({ eventData, onSave, onCancel }) => {
                 <div key={i} style={{ border: "1px dashed #ccc", padding: "5px", marginBottom: "5px" }}>
                   <label>
                     <span>Suite</span>
-                    <input type="text" value={suite.name} readOnly placeholder="Nome da suite" />
+                    <InputContainer>
+                      <input type="text" value={suite.name} readOnly placeholder="Nome da suite" />
+                      {suite.name && suite.name.trim() !== "" && <CheckIconStyled size={16} />}
+                    </InputContainer>
                   </label>
                   <label>
                     <span>Parcela mínima</span>
-                    <select
-                      value={suite.parcel}
-                      onChange={(e) => handleSuiteChange(i, "parcel", e.target.value)}
-                    >
-                      <option value="">Selecione</option>
-                      {[8, 9, 10, 11, 12].map((num) => (
-                        <option key={num} value={num}>
-                          {num}
-                        </option>
-                      ))}
-                    </select>
+                    <InputContainer>
+                      <select
+                        value={suite.parcel}
+                        onChange={(e) => handleSuiteChange(i, "parcel", e.target.value)}
+                      >
+                        <option value="">Selecione a parcela mínima</option>
+                        {[8, 9, 10, 11, 12].map((num) => (
+                          <option key={num} value={num}>
+                            {num}
+                          </option>
+                        ))}
+                      </select>
+                      {suite.parcel && suite.parcel !== "" && <CheckIconStyled size={16} />}
+                    </InputContainer>
                   </label>
                   <label>
                     <span>Preço mínimo</span>
-                    <input
-                      type="number"
-                      value={suite.price}
-                      onChange={(e) => handleSuiteChange(i, "price", e.target.value)}
-                      placeholder="Preço da suite"
-                    />
+                    <InputContainer>
+                      <input
+                        type="number"
+                        value={suite.price}
+                        onChange={(e) => handleSuiteChange(i, "price", e.target.value)}
+                        placeholder="Preço da suite"
+                      />
+                      {suite.price && suite.price.toString().trim() !== "" && <CheckIconStyled size={16} />}
+                    </InputContainer>
                   </label>
                 </div>
               );
