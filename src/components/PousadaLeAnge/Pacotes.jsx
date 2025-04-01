@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import styled from "styled-components";
+import InputMask from "react-input-mask";
 import { collection, getDocs, deleteDoc, doc, updateDoc, addDoc } from "firebase/firestore";
 import { getDatabase } from "../../../firebaseConfig"; // ajuste o caminho conforme necessário
 import { toast } from "react-toastify";
@@ -132,7 +133,8 @@ const ModalContent = styled.div`
       width: 100%;
 
       & input,
-      & textarea {
+      & textarea,
+      & select {
         width: 100%;
         padding: 5px;
       }
@@ -234,68 +236,110 @@ const AddButton = styled.button`
   font-size: 16px;
 `;
 
-// Função auxiliar para upload de arquivo para sua API
-const uploadFileToServer = async (file) => {
-  const formData = new FormData();
-  formData.append("file", file);
-  try {
-    const response = await fetch("https://server.unitycompany.com.br/api/upload", {
-      method: "POST",
-      body: formData,
-    });
-    const data = await response.json();
-    if (data.url) {
-      return data.url;
-    } else {
-      console.error("Erro no upload:", data);
-      return null;
-    }
-  } catch (error) {
-    console.error("Erro ao enviar para o endpoint:", error);
-    return null;
-  }
+// Função para formatar uma data (objeto Date) como "dd/mm/aaaa"
+const formatDate = (date) => {
+  if (!date) return "";
+  const day = date.getDate().toString().padStart(2, "0");
+  const month = (date.getMonth() + 1).toString().padStart(2, "0");
+  const year = date.getFullYear();
+  return `${day}/${month}/${year}`;
+};
+
+// Converte uma string "dd/mm/aaaa" para objeto Date
+const parseDateBR = (brDate) => {
+  if (!brDate || brDate.indexOf("_") !== -1) return null;
+  const parts = brDate.split("/");
+  if (parts.length !== 3) return null;
+  const [day, month, year] = parts;
+  return new Date(year, month - 1, day);
+};
+
+// Formata as datas no formato desejado: "dd/mm/aaaa até dd/mm/aaaa (X diárias)"
+const formatCardDates = (dataEntrada, dataSaida) => {
+  if (!dataEntrada || !dataSaida) return "";
+  const start = parseDateBR(dataEntrada);
+  const end = parseDateBR(dataSaida);
+  if (!start || !end) return "";
+  const diffTime = end - start;
+  const diarias = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+  return `${dataEntrada} até ${dataSaida} (${diarias} diárias)`;
 };
 
 // -------------------------
 // Componente do Modal de Edição / Adição para Pacotes
 // -------------------------
 const EditModal = ({ eventData, onSave, onCancel }) => {
-  // Inicializa os campos para topics e suites se não existirem
-  const initialTopics = eventData.topics || ["", "", ""];
-  const initialSuites = eventData.suites || [
-    { name: "", parcel: "", price: "" },
-    { name: "", parcel: "", price: "" },
-    { name: "", parcel: "", price: "" }
+  // Nomes padrão das 3 suites
+  const defaultSuites = [
+    { name: "Standard", parcel: "", price: "" },
+    { name: "Superior", parcel: "", price: "" },
+    { name: "Master", parcel: "", price: "" }
   ];
+
+  let initialSuites = [];
+  if (eventData.suites && eventData.suites.length > 0) {
+    initialSuites = [...eventData.suites];
+    const defaultNames = ["Standard", "Superior", "Master"];
+    for (let i = initialSuites.length; i < 3; i++) {
+      initialSuites.push({ name: defaultNames[i], parcel: "", price: "" });
+    }
+  } else {
+    initialSuites = defaultSuites;
+  }
+
+  // Para datas, se houver valor salvo (formato "dd/mm/aaaa"), usa-o; caso contrário, inicia vazio
+  const initialDataEntrada = eventData.dataEntrada || "";
+  const initialDataSaida = eventData.dataSaida || "";
+
+  const initialTopics = eventData.topics || ["", "", ""];
 
   const [formValues, setFormValues] = useState({
     ...eventData,
     topics: initialTopics,
-    suites: initialSuites
+    suites: initialSuites,
+    dataEntrada: initialDataEntrada,
+    dataSaida: initialDataSaida
   });
 
+  // Atualiza os valores do formulário
   const handleFieldChange = (e) => {
     const { name, value } = e.target;
     setFormValues({ ...formValues, [name]: value });
   };
 
-  // Atualiza o valor de um tópico específico
   const handleTopicChange = (index, value) => {
     const updatedTopics = [...formValues.topics];
     updatedTopics[index] = value;
     setFormValues({ ...formValues, topics: updatedTopics });
   };
 
-  // Atualiza um campo de uma suite específica
   const handleSuiteChange = (index, field, value) => {
     const updatedSuites = [...formValues.suites];
     updatedSuites[index] = { ...updatedSuites[index], [field]: field === "price" ? Number(value) : value };
     setFormValues({ ...formValues, suites: updatedSuites });
   };
 
+  // Computa a string de período conforme as datas são preenchidas
+  const computedDescription = (() => {
+    if (formValues.dataEntrada && formValues.dataSaida) {
+      return formatCardDates(formValues.dataEntrada, formValues.dataSaida);
+    }
+    return "";
+  })();
+
   const handleSubmit = (e) => {
     e.preventDefault();
-    onSave(formValues);
+    if (!formValues.dataEntrada || !formValues.dataSaida) {
+      toast.error("Preencha as duas datas.");
+      return;
+    }
+    const newDescription = computedDescription;
+    onSave({
+      ...formValues,
+      description: newDescription,
+      dataEntrada: formValues.dataEntrada,
+      dataSaida: formValues.dataSaida
+    });
   };
 
   return (
@@ -317,22 +361,41 @@ const EditModal = ({ eventData, onSave, onCancel }) => {
           </label>
           <label>
             <span>Categoria</span>
-            <input
-              type="text"
+            <select
               name="categorias"
               value={formValues.categorias || ""}
               onChange={handleFieldChange}
-              placeholder="Ex: Luxo, Econômico"
+            >
+              <option value="">Selecione</option>
+              <option value="Feriados">Feriados</option>
+              <option value="Programações Especiais">Programações Especiais</option>
+              <option value="Promoções">Promoções</option>
+            </select>
+          </label>
+          <label>
+            <span>Data de Entrada</span>
+            <InputMask
+              mask="99/99/9999"
+              name="dataEntrada"
+              value={formValues.dataEntrada}
+              onChange={handleFieldChange}
+              placeholder="dd/mm/aaaa"
             />
           </label>
           <label>
-            <span>Data</span>
-            <input
-              name="description"
-              value={formValues.description || ""}
+            <span>Data de Saída</span>
+            <InputMask
+              mask="99/99/9999"
+              name="dataSaida"
+              value={formValues.dataSaida}
               onChange={handleFieldChange}
-              placeholder="Descrição do pacote"
+              placeholder="dd/mm/aaaa"
             />
+          </label>
+          {/* Preview dinâmico do período */}
+          <label>
+            <span>Período</span>
+            <input type="text" readOnly value={computedDescription} />
           </label>
           <label>
             <span>Imagem (URL)</span>
@@ -343,7 +406,6 @@ const EditModal = ({ eventData, onSave, onCancel }) => {
               onChange={handleFieldChange}
               placeholder="URL da imagem do pacote"
             />
-            {/* Input para upload via API */}
             <input
               type="file"
               accept="image/*"
@@ -357,7 +419,6 @@ const EditModal = ({ eventData, onSave, onCancel }) => {
                 }
               }}
             />
-            {/* Botão para remover a imagem, se houver */}
             {formValues.imagem && (
               <button type="button" onClick={() => setFormValues({ ...formValues, imagem: "" })}>
                 Remover Imagem
@@ -383,31 +444,24 @@ const EditModal = ({ eventData, onSave, onCancel }) => {
             {[0, 1, 2].map((i) => {
               const suite = formValues.suites[i] || { name: "", parcel: "", price: "" };
               return (
-                <div
-                  key={i}
-                  style={{
-                    border: "1px dashed #ccc",
-                    padding: "5px",
-                    marginBottom: "5px"
-                  }}
-                >
+                <div key={i} style={{ border: "1px dashed #ccc", padding: "5px", marginBottom: "5px" }}>
                   <label>
                     <span>Suite</span>
-                    <input
-                      type="text"
-                      value={suite.name}
-                      onChange={(e) => handleSuiteChange(i, "name", e.target.value)}
-                      placeholder="Nome da suite"
-                    />
+                    <input type="text" value={suite.name} readOnly placeholder="Nome da suite" />
                   </label>
                   <label>
                     <span>Parcela mínima</span>
-                    <input
-                      type="text"
+                    <select
                       value={suite.parcel}
                       onChange={(e) => handleSuiteChange(i, "parcel", e.target.value)}
-                      placeholder="Parcelas da suite"
-                    />
+                    >
+                      <option value="">Selecione</option>
+                      {[8, 9, 10, 11, 12].map((num) => (
+                        <option key={num} value={num}>
+                          {num}
+                        </option>
+                      ))}
+                    </select>
                   </label>
                   <label>
                     <span>Preço mínimo</span>
@@ -432,6 +486,28 @@ const EditModal = ({ eventData, onSave, onCancel }) => {
       </ModalContent>
     </ModalOverlay>
   );
+};
+
+// Função auxiliar para upload de arquivo para sua API
+const uploadFileToServer = async (file) => {
+  const formData = new FormData();
+  formData.append("file", file);
+  try {
+    const response = await fetch("https://server.unitycompany.com.br/api/upload", {
+      method: "POST",
+      body: formData,
+    });
+    const data = await response.json();
+    if (data.url) {
+      return data.url;
+    } else {
+      console.error("Erro no upload:", data);
+      return null;
+    }
+  } catch (error) {
+    console.error("Erro ao enviar para o endpoint:", error);
+    return null;
+  }
 };
 
 const ConfirmDeleteModal = ({ onConfirm, onCancel }) => {
@@ -472,7 +548,7 @@ const Pacotes = () => {
     }
   };
 
-  useEffect(() => {
+  React.useEffect(() => {
     fetchEvents();
   }, []);
 
@@ -496,7 +572,7 @@ const Pacotes = () => {
       toast.success("Pacote atualizado com sucesso");
     } catch (error) {
       console.error("Erro ao atualizar pacote:", error);
-      toast.error("Erro ao atualizar o pacote")
+      toast.error("Erro ao atualizar o pacote");
     }
   };
 
@@ -505,7 +581,7 @@ const Pacotes = () => {
       await addDoc(collection(db, "pacotes"), newValues);
       setIsAdding(false);
       fetchEvents();
-      toast.success("Pacote adicionar com sucesso");
+      toast.success("Pacote adicionado com sucesso");
     } catch (error) {
       console.error("Erro ao adicionar pacote:", error);
       toast.error("Erro ao adicionar o pacote");
@@ -542,8 +618,7 @@ const Pacotes = () => {
         <p>Carregando...</p>
       ) : (
         <>
-          <CardGrid>{events.map((event) => renderCard(event))}</CardGrid>
-          <div style={{ marginTop: "20px" }}>
+          <div style={{ marginBottom: "20px" }}>
             <AddButton
               onClick={() => {
                 setIsAdding(true);
@@ -553,6 +628,7 @@ const Pacotes = () => {
               Adicionar Pacote
             </AddButton>
           </div>
+          <CardGrid>{events.map((event) => renderCard(event))}</CardGrid>
         </>
       )}
       {editingEvent && (

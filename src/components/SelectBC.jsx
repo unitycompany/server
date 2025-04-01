@@ -3,39 +3,29 @@ import styled from "styled-components";
 import { useNavigate } from "react-router-dom";
 
 const Content = styled.div`
-  border: 1px solid #00000050;
+  border: 1px solid #00000030;
+  border-left-color: #00ff2a1f;
+  border-left-width: 3px;
   width: 100%;
-  max-width: 250px;
+  min-width: 250px;
   height: auto;
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  justify-content: center;
-  gap: 20px;
-  padding: 15px;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 5px 5px 5px 10px;
   position: relative;
   overflow: hidden;
+  transition: all .1s ease-out;
 
-  & img {
-    width: auto;
-    right: 0px;
-    bottom: 0px;
-    height: 30px;
-    object-fit: contain;
-    position: absolute;
-    z-index: -1;
-    border: 1px solid #00000050;
-    padding: 5px;
-    border-bottom: 0;
-    border-right: 0;
+  &:hover {
+    background-color: #00000010;
   }
 
   & h2 {
-    font-size: 20px;
-    font-weight: 600;
-    color: transparent;
-    background: linear-gradient(90deg, #bd0a0a, #2e2d2d, #003aa7);
-    -webkit-background-clip: text;
+    font-size: 18px;
+    font-weight: 400;
   }
 
   & button {
@@ -55,7 +45,6 @@ const SelectBC = ({ image, nome, background, onClick }) => {
   
     return (
       <Content onClick={handleClick} background={background}>
-        <img src={image} alt={nome} />
         <h2>{nome}</h2>
         <button onClick={handleClick}>Selecionar</button>
       </Content>

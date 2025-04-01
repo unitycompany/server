@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from "react";
 import styled from "styled-components";
+import InputMask from "react-input-mask";
 import { collection, getDocs, deleteDoc, doc, updateDoc, addDoc } from "firebase/firestore";
 import { getDatabase } from "../../../firebaseConfig"; // ajuste o caminho conforme necessário
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import { FaCheck } from "react-icons/fa"; // para referência do ícone
 
-// Mapeamento de ícones, se necessário (aqui só como exemplo)
+// Exemplo opcional de mapeamento de ícones
 const iconMap = {
   '<FaUtensils />': "FaUtensils",
   '<FaRegCreditCard />': "FaRegCreditCard",
@@ -28,8 +30,6 @@ const Card = styled.div`
   & div {
     display: flex;
     flex-direction: column;
-    align-items: flex-start;
-    justify-content: center;
     gap: 15px;
 
     & img {
@@ -79,7 +79,6 @@ const CardGrid = styled.div`
   position: relative;
 `;
 
-// Estilos para os modais
 const ModalOverlay = styled.div`
   position: fixed;
   top: 0;
@@ -102,21 +101,17 @@ const ModalContent = styled.div`
   max-height: 80vh;
   overflow: auto;
 
-  & article {
-    & h2 {
-      font-size: 22px;
-      font-weight: 600;
-      color: transparent;
-      background: linear-gradient(90deg, #bd0a0a, #2e2d2d, #003aa7);
-      -webkit-background-clip: text;
-    }
+  & article h2 {
+    font-size: 22px;
+    font-weight: 600;
+    color: transparent;
+    background: linear-gradient(90deg, #bd0a0a, #2e2d2d, #003aa7);
+    -webkit-background-clip: text;
   }
 
   & form {
     display: flex;
     flex-direction: column;
-    align-items: flex-start;
-    justify-content: center;
     gap: 20px;
     margin-top: 30px;
 
@@ -126,16 +121,18 @@ const ModalContent = styled.div`
       position: relative;
       width: 100%;
 
-      & input {
+      & input,
+      & select {
         width: 100%;
+        padding: 5px;
       }
 
       & span {
         background: #fff;
         padding: 2px 5px;
+        position: absolute;
         top: -10px;
         left: 5px;
-        position: absolute;
         font-size: 12px;
         font-weight: 600;
         color: #00000080;
@@ -151,8 +148,6 @@ const ModalContent = styled.div`
       width: 100%;
       display: flex;
       flex-direction: column;
-      align-items: flex-start;
-      justify-content: center;
       gap: 10px;
 
       & button {
@@ -181,7 +176,7 @@ const ModalExcluir = styled.div`
     font-weight: 600;
     width: 100%;
     border-bottom: 1px solid #00000020;
-    padding: 5px 0 5px 0;
+    padding: 5px 0;
   }
 
   & p {
@@ -191,8 +186,6 @@ const ModalExcluir = styled.div`
 
   & div {
     display: flex;
-    align-items: flex-start;
-    justify-content: center;
     gap: 10px;
     padding: 10px 0;
 
@@ -212,12 +205,13 @@ const ModalExcluir = styled.div`
 `;
 
 const Buttons = styled.div`
-  display: flex!important;
-  align-items: center!important;
-  justify-content: flex-start!important;
+  display: flex;
   flex-direction: row!important;
+  align-items: center;
+  justify-content: flex-start;
   gap: 10px;
-  
+  width: 100%;
+
   & button {
     &:nth-child(1) {
       background-color: #34b600;
@@ -236,33 +230,51 @@ const AddButton = styled.button`
   font-size: 16px;
 `;
 
-// Função auxiliar para upload de arquivo para sua API
-const uploadFileToServer = async (file) => {
-  const formData = new FormData();
-  formData.append("file", file);
-  try {
-    const response = await fetch("https://server.unitycompany.com.br/api/upload", {
-      method: "POST",
-      body: formData,
-    });
-    const data = await response.json();
-    if (data.url) {
-      return data.url;
-    } else {
-      console.error("Erro no upload:", data);
-      return null;
-    }
-  } catch (error) {
-    console.error("Erro ao enviar para o endpoint:", error);
-    return null;
-  }
+// Converte uma data no formato "dd/mm/aaaa" para objeto Date
+const parseDateBR = (brDate) => {
+  if (!brDate || brDate.indexOf("_") !== -1) return null;
+  const parts = brDate.split("/");
+  if (parts.length !== 3) return null;
+  const [day, month, year] = parts;
+  return new Date(year, month - 1, day);
+};
+
+// Formata as datas no formato "dd/mm/aaaa até dd/mm/aaaa (X diárias)"
+const formatCardDates = (dataEntrada, dataSaida) => {
+  if (!dataEntrada || !dataSaida) return "";
+  const start = parseDateBR(dataEntrada);
+  const end = parseDateBR(dataSaida);
+  if (!start || !end) return "";
+  const diffTime = end - start;
+  const diarias = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+  return `${dataEntrada} até ${dataSaida} (${diarias} diárias)`;
 };
 
 // -------------------------
-// Componente do Modal de Edição / Adição
+// Componente do Modal de Edição / Adição para Evento
 // -------------------------
 const EditModal = ({ eventData, onSave, onCancel }) => {
-  const [formValues, setFormValues] = useState({ ...eventData });
+  const initialDataEntrada = eventData.dataEntrada || "";
+  const initialDataSaida = eventData.dataSaida || "";
+
+  // Se não houver features, inicia com um tópico padrão com ícone "<FaCheck />"
+  const initialFeatures =
+    eventData.features && eventData.features.length > 0
+      ? eventData.features
+      : [{ icon: "<FaCheck />", text: "" }];
+
+  const [formValues, setFormValues] = useState({
+    ...eventData,
+    dataEntrada: initialDataEntrada,
+    dataSaida: initialDataSaida,
+    features: initialFeatures
+  });
+
+  // Calcula dinamicamente a string de período conforme os campos de data são preenchidos
+  const computedDateRange =
+    formValues.dataEntrada && formValues.dataSaida
+      ? formatCardDates(formValues.dataEntrada, formValues.dataSaida)
+      : "";
 
   const handleFieldChange = (e) => {
     const { name, value } = e.target;
@@ -278,7 +290,7 @@ const EditModal = ({ eventData, onSave, onCancel }) => {
   };
 
   const addFeature = () => {
-    const updatedFeatures = [...features, { icon: "", text: "" }];
+    const updatedFeatures = [...features, { icon: "<FaCheck />", text: "" }];
     setFormValues({ ...formValues, features: updatedFeatures });
   };
 
@@ -289,7 +301,17 @@ const EditModal = ({ eventData, onSave, onCancel }) => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    onSave(formValues);
+    if (!formValues.dataEntrada || !formValues.dataSaida) {
+      toast.error("Preencha as duas datas.");
+      return;
+    }
+    const newDateRange = formatCardDates(formValues.dataEntrada, formValues.dataSaida);
+    onSave({
+      ...formValues,
+      dateRange: newDateRange,
+      dataEntrada: formValues.dataEntrada,
+      dataSaida: formValues.dataSaida
+    });
   };
 
   return (
@@ -310,14 +332,28 @@ const EditModal = ({ eventData, onSave, onCancel }) => {
             />
           </label>
           <label>
-            <span>Data</span>
-            <input
-              type="text"
-              name="dateRange"
-              value={formValues.dateRange || ""}
+            <span>Data de Entrada</span>
+            <InputMask
+              mask="99/99/9999"
+              name="dataEntrada"
+              value={formValues.dataEntrada}
               onChange={handleFieldChange}
-              placeholder="21/03/2025 até 23/03/2025 (2 diárias)"
+              placeholder="dd/mm/aaaa"
             />
+          </label>
+          <label>
+            <span>Data de Saída</span>
+            <InputMask
+              mask="99/99/9999"
+              name="dataSaida"
+              value={formValues.dataSaida}
+              onChange={handleFieldChange}
+              placeholder="dd/mm/aaaa"
+            />
+          </label>
+          <label>
+            <span>Período</span>
+            <input type="text" readOnly value={computedDateRange} />
           </label>
           <label>
             <span>Imagem (URL)</span>
@@ -326,9 +362,8 @@ const EditModal = ({ eventData, onSave, onCancel }) => {
               name="image"
               value={formValues.image || ""}
               onChange={handleFieldChange}
-              placeholder="Imagem do pacote como url"
+              placeholder="Imagem do pacote como URL"
             />
-            {/* Input para upload via API */}
             <input
               type="file"
               accept="image/*"
@@ -342,25 +377,26 @@ const EditModal = ({ eventData, onSave, onCancel }) => {
                 }
               }}
             />
-            {/* Botão para remover a imagem, se houver */}
             {formValues.image && (
-              <button
-                type="button"
-                onClick={() => setFormValues({ ...formValues, image: "" })}
-              >
+              <button type="button" onClick={() => setFormValues({ ...formValues, image: "" })}>
                 Remover Imagem
               </button>
             )}
           </label>
           <label>
             <span>Quantas parcelas do pagamento mínimo</span>
-            <input
-              type="text"
+            <select
               name="payment"
               value={formValues.payment || ""}
               onChange={handleFieldChange}
-              placeholder="9x"
-            />
+            >
+              <option value="">Selecione</option>
+              {[8, 9, 10, 11, 12].map((num) => (
+                <option key={num} value={num}>
+                  {num}x
+                </option>
+              ))}
+            </select>
           </label>
           <label>
             <span>Preço do pagamento mínimo</span>
@@ -387,10 +423,8 @@ const EditModal = ({ eventData, onSave, onCancel }) => {
                   <span>Ícone:</span>
                   <input
                     type="text"
-                    value={feat.icon}
-                    onChange={(e) =>
-                      handleFeatureChange(index, "icon", e.target.value)
-                    }
+                    value={feat.icon || "<FaCheck />"}
+                    onChange={(e) => handleFeatureChange(index, "icon", e.target.value)}
                     placeholder="<FaCheck />"
                   />
                 </label>
@@ -399,10 +433,8 @@ const EditModal = ({ eventData, onSave, onCancel }) => {
                   <input
                     type="text"
                     value={feat.text}
-                    onChange={(e) =>
-                      handleFeatureChange(index, "text", e.target.value)
-                    }
-                    placeholder="tópico"
+                    onChange={(e) => handleFeatureChange(index, "text", e.target.value)}
+                    placeholder="Diga algo que temos (ex.: Taxa pet free, Refeições incluídas)"
                   />
                 </label>
                 <button type="button" onClick={() => removeFeature(index)}>
@@ -426,9 +458,28 @@ const EditModal = ({ eventData, onSave, onCancel }) => {
   );
 };
 
-// -------------------------
-// Componente do Modal de Confirmação de Exclusão
-// -------------------------
+// Função auxiliar para upload de arquivo para sua API
+const uploadFileToServer = async (file) => {
+  const formData = new FormData();
+  formData.append("file", file);
+  try {
+    const response = await fetch("https://server.unitycompany.com.br/api/upload", {
+      method: "POST",
+      body: formData,
+    });
+    const data = await response.json();
+    if (data.url) {
+      return data.url;
+    } else {
+      console.error("Erro no upload:", data);
+      return null;
+    }
+  } catch (error) {
+    console.error("Erro ao enviar para o endpoint:", error);
+    return null;
+  }
+};
+
 const ConfirmDeleteModal = ({ onConfirm, onCancel }) => {
   return (
     <ModalOverlay>
@@ -444,9 +495,6 @@ const ConfirmDeleteModal = ({ onConfirm, onCancel }) => {
   );
 };
 
-// -------------------------
-// Componente Principal "Event"
-// -------------------------
 const Event = () => {
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -523,7 +571,6 @@ const Event = () => {
       toast.error("Erro ao adicionar evento!");
     }
   };
-  
 
   const renderCard = (event) => {
     return (
@@ -534,10 +581,12 @@ const Event = () => {
           <span>{event.dateRange}</span>
         </div>
         <article>
-          <button onClick={() => {
-            setEditingEvent(event);
-            setIsAdding(false);
-          }}>
+          <button
+            onClick={() => {
+              setEditingEvent(event);
+              setIsAdding(false);
+            }}
+          >
             Editar
           </button>
           <button onClick={() => setDeleteEventId(event.id)}>Excluir</button>
@@ -552,8 +601,7 @@ const Event = () => {
         <p>Carregando...</p>
       ) : (
         <>
-          <CardGrid>{events.map((event) => renderCard(event))}</CardGrid>
-          <div style={{ marginTop: "20px" }}>
+          <div style={{ marginBottom: "20px" }}>
             <AddButton
               onClick={() => {
                 setIsAdding(true);
@@ -563,6 +611,7 @@ const Event = () => {
               Adicionar Evento
             </AddButton>
           </div>
+          <CardGrid>{events.map((event) => renderCard(event))}</CardGrid>
         </>
       )}
       {editingEvent && (

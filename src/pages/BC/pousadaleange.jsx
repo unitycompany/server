@@ -8,29 +8,6 @@ const Container = styled.div`
   padding: 5px;
 `;
 
-const Top = styled.div`
-  width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  border-bottom: 1px solid #00000050;
-  padding: 10px 0;
-  margin-bottom: 10px;
-
-  & h1 {
-    font-weight: 600;
-  }
-
-  & button {
-    padding: 5px 15px;
-    background-color: #000;
-    border: 2px solid #727272;
-    color: #fff;
-    cursor: pointer;
-    font-size: 14px;
-  }
-`;
-
 const Options = styled.div`
   & div {
     padding: 10px 0;
@@ -38,7 +15,7 @@ const Options = styled.div`
     flex-direction: row;
     align-items: flex-start;
     justify-content: flex-start;
-    gap: 20px;
+    gap: 10px;
     border-bottom: 1px solid #00000050;
 
     & img {
@@ -52,12 +29,12 @@ const Options = styled.div`
       align-items: flex-start;
       justify-content: flex-start;
       gap: 10px;
+      border-left: 1px solid #00000050;
+      padding-left: 5px;
 
       & h1 {
         font-size: 20px;
-        color: transparent;
-        background: linear-gradient(90deg, #bd0a0a, #2e2d2d, #003aa7);
-        -webkit-background-clip: text;
+        line-height: 100%;
       }
 
       & button {
@@ -84,17 +61,6 @@ const PousadaLeAnge = () => {
 
   return (
     <Container>
-      <Top>
-        <h1>
-          {selectedComponent
-            ? `Pousada Le Ange - ${selectedComponent}`
-            : "Selecione uma coleção"}
-        </h1>
-        {selectedComponent && (
-          <button onClick={() => setSelectedComponent(null)}>Voltar</button>
-        )}
-      </Top>
-
       {!selectedComponent ? (
         <Options>
           <div>
