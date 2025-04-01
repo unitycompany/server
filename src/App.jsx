@@ -13,7 +13,7 @@ const AuthenticatedApp = () => {
 
   useEffect(() => {
     const lastLogin = localStorage.getItem('lastLogin');
-    const loginTimeout = 1000 * 24 * 60 * 60; // 24 horas
+    const loginTimeout = 1000 * 96 * 60 * 60; // 24 horas
 
     if (lastLogin && (Date.now() - lastLogin) < loginTimeout && currentUser) {
       setShowLogin(false);
