@@ -15,6 +15,19 @@ const iconMap = {
   '<FaPaw />': "FaPaw"
 };
 
+const InputContainer = styled.div`
+  position: relative;
+`;
+
+// Ícone de check posicionado à direita do input
+const CheckIconStyled = styled(FaCheck)`
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: green;
+`;
+
 const Content = styled.div``;
 
 const Card = styled.div`
@@ -302,11 +315,18 @@ const EditModal = ({ eventData, onSave, onCancel }) => {
   const initialDataEntrada = eventData.dataEntrada || "";
   const initialDataSaida = eventData.dataSaida || "";
 
+  const defaultFeatures = [
+    { icon: "<FaCheck />" ,text: "Taxa pet free (não cobramos por pet)" },
+    { icon: "<FaCheck />" ,text: "Todas as refeições incluídas" },
+    { icon: "<FaCheck />" ,text: "" }
+  ];
+
   // Se não houver features, inicia com um tópico padrão com ícone "<FaCheck />"
   const initialFeatures =
-    eventData.features && eventData.features.length > 0
+    eventData.features && eventData.features.length === 3
       ? eventData.features
-      : [{ icon: "<FaCheck />", text: "" }];
+      : defaultFeatures;
+
 
   const [formValues, setFormValues] = useState({
     ...eventData,
@@ -398,48 +418,61 @@ const EditModal = ({ eventData, onSave, onCancel }) => {
         <form onSubmit={handleSubmit}>
           <label className="nome">
             <span>Nome do Pacote</span>
-            <input
-              type="text"
-              name="title"
-              value={formValues.title || ""}
-              onChange={handleFieldChange}
-              placeholder="Noite de Pizzas"
-            />
+            <InputContainer>
+              <input
+                type="text"
+                name="title"
+                value={formValues.title || ""}
+                onChange={handleFieldChange}
+                placeholder="Noite de Pizzas"
+              />
+              {formValues.title && formValues.title.trim() !== "" && <CheckIconStyled size={16} />}
+            </InputContainer>
           </label>
           <label className="entrada">
             <span>Data de Entrada</span>
-            <InputMask
-              mask="99/99/9999"
-              name="dataEntrada"
-              value={formValues.dataEntrada}
-              onChange={handleFieldChange}
-              placeholder="dd/mm/aaaa"
-            />
+            <InputContainer>
+              <InputMask
+                mask="99/99/9999"
+                name="dataEntrada"
+                value={formValues.dataEntrada}
+                onChange={handleFieldChange}
+                placeholder="dd/mm/aaaa"
+              />
+              {formValues.dataEntrada && formValues.dataEntrada.trim() !== "" && <CheckIconStyled size={16} />}
+            </InputContainer>
           </label>
           <label className="saida">
             <span>Data de Saída</span>
-            <InputMask
-              mask="99/99/9999"
-              name="dataSaida"
-              value={formValues.dataSaida}
-              onChange={handleFieldChange}
-              placeholder="dd/mm/aaaa"
-            />
+            <InputContainer>
+              <InputMask
+                mask="99/99/9999"
+                name="dataSaida"
+                value={formValues.dataSaida}
+                onChange={handleFieldChange}
+                placeholder="dd/mm/aaaa"
+              />
+              {formValues.dataSaida && formValues.dataSaida.trim() !== "" && <CheckIconStyled size={16} />}
+            </InputContainer>
           </label>
           <label className="periodo">
             <span>Período</span>
-            <input type="text" readOnly value={computedDateRange} />
+            <InputContainer>
+              <input type="text" readOnly value={computedDateRange} />
+              {computedDateRange && computedDateRange.trim() !== "" && <CheckIconStyled size={16} />}
+            </InputContainer>
           </label>
           <label className="imagem">
             <span>Imagem (URL)</span>
-            <input
-              type="text"
-              name="image"
-              value={formValues.image || ""}
-              onChange={handleFieldChange}
-              placeholder="Imagem do pacote como URL"
-            />
-            <input
+            <InputContainer>
+              <input
+                type="text"
+                name="image"
+                value={formValues.image || ""}
+                onChange={handleFieldChange}
+                placeholder="Imagem do pacote como URL"
+              />
+              <input
               type="file"
               accept="image/*"
               onChange={async (e) => {
@@ -457,35 +490,43 @@ const EditModal = ({ eventData, onSave, onCancel }) => {
                 Remover Imagem
               </button>
             )}
+              {formValues.image && formValues.image.trim() !== "" && <CheckIconStyled size={16} />}
+            </InputContainer>
           </label>
           <label className="parcelas">
             <span>Quantas parcelas do pagamento mínimo</span>
-            <select
-              name="payment"
-              value={formValues.payment || ""}
-              onChange={handleFieldChange}
-            >
-              <option value="">Selecione</option>
-              {[8, 9, 10, 11, 12].map((num) => (
-                <option key={num} value={num}>
-                  {num}x
-                </option>
-              ))}
-            </select>
+            <InputContainer>
+              <select
+                name="payment"
+                value={formValues.payment || ""}
+                onChange={handleFieldChange}
+              >
+                <option value="">Selecione</option>
+                {[8, 9, 10, 11, 12].map((num) => (
+                  <option key={num} value={num}>
+                    {num}x
+                  </option>
+                ))}
+              </select>
+              {formValues.payment && formValues.payment !== "" && <CheckIconStyled size={16} />}
+            </InputContainer>
           </label>
           <label className="pagamento">
             <span>Preço do pagamento mínimo</span>
-            <input
-              type="text"
-              name="price"
-              value={formValues.price || ""}
-              onChange={handleFieldChange}
-              placeholder="436,00"
-            />
+            <InputContainer>
+              <input
+                type="text"
+                name="price"
+                value={formValues.price || ""}
+                onChange={handleFieldChange}
+                placeholder="436,00"
+              />
+              {formValues.price && formValues.price.trim() !== "" && <CheckIconStyled size={16} />}
+            </InputContainer>
           </label>
           <div className="topicos">
             <h3>Tópicos:</h3>
-            {features.map((feat, index) => (
+            {formValues.features.map((feat, index) => (
               <div
                 key={index}
                 style={{
@@ -495,38 +536,25 @@ const EditModal = ({ eventData, onSave, onCancel }) => {
                 }}
               >
                 <label>
-                  <span>Ícone:</span>
-                  <input
-                    type="text"
-                    value={feat.icon || "<FaCheck />"}
-                    onChange={(e) => handleFeatureChange(index, "icon", e.target.value)}
-                    placeholder="<FaCheck />"
-                  />
+                  <span>Tópico {index + 1}:</span>
+                  <InputContainer>
+                    <input
+                      type="text"
+                      value={feat.text}
+                      onChange={(e) => handleFeatureChange(index, "text", e.target.value)}
+                      placeholder={index === 2 ? "Digite o terceiro tópico" : ""}
+                      readOnly={index < 2}
+                    />
+                    {feat.text.trim() !== "" && <CheckIconStyled size={16} />}
+                  </InputContainer>
                 </label>
-                <label>
-                  <span>Tópico:</span>
-                  <input
-                    type="text"
-                    value={feat.text}
-                    onChange={(e) => handleFeatureChange(index, "text", e.target.value)}
-                    placeholder="Diga algo que temos (ex.: Taxa pet free, Refeições incluídas)"
-                  />
-                </label>
-                <button type="button" onClick={() => removeFeature(index)}>
-                  Remover
-                </button>
               </div>
             ))}
-            <button type="button" onClick={addFeature}>
-              Adicionar Novo Tópico
-            </button>
           </div>
-          <Buttons>
+          <div className="Buttons">
             <button className="salvar" type="submit">Salvar</button>
-            <button className="cancelar" type="button" onClick={onCancel}>
-              Cancelar
-            </button>
-          </Buttons>
+            <button className="cancelar" type="button" onClick={onCancel}>Cancelar</button>
+          </div>
         </form>
       </ModalContent>
     </ModalOverlay>
