@@ -21,7 +21,7 @@ const Card = styled.div`
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  justify-content: center;
+  justify-content: flex-start;
   gap: 15px;
 
   & h1 {
@@ -372,17 +372,19 @@ const Blog = () => {
     fetchBlogs();
   }, []);
 
-    const handleDeleteConfirm = async (id) => {
-        try {
-        await deleteDoc(doc(db, "Eventos", id));
-        setDeleteEventId(null);
-        fetchEvents();
-        toast.warn("Blog excluido!");
-        } catch (error) {
-        console.error("Erro ao excluir evento:", error);
-        toast.error("Erro ao excluir o blog");
-        }
-    };
+  const handleDeleteConfirm = async (id) => {
+    try {
+      await deleteDoc(doc(db, "Blog", id)); // Altere para "Blog"
+      setDeleteEventId(null);
+      fetchBlogs(); // Chama a função correta
+      toast.warn("Blog excluído!");
+    } catch (error) {
+      console.error("Erro ao excluir blog:", error);
+      toast.error("Erro ao excluir o blog!");
+    }
+  };
+  
+      
 
   const handleEditSave = async (updatedBlog) => {
     try {
