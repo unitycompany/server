@@ -510,8 +510,8 @@ const EditModal = ({ eventData, onSave, onCancel }) => {
               >
                 <option value="">Selecione a parcela mínima</option>
                 {[8, 9, 10, 11, 12].map((num) => (
-                  <option key={num} value={num}>
-                    {num}x
+                  <option key={num} value={`${num}x`}>
+                    {num + "x"}
                   </option>
                 ))}
               </select>
