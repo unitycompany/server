@@ -8,26 +8,27 @@ import { AuthProvider, useAuth } from "../AuthContext";
 import "react-toastify/dist/ReactToastify.css";
 
 const AuthenticatedApp = () => {
-  const { currentUser } = useAuth();
+  const { currentUser, loading } = useAuth();
   const [showLogin, setShowLogin] = useState(true);
 
   useEffect(() => {
-    const lastLogin = localStorage.getItem('lastLogin');
-    const loginTimeout = 1000 * 96 * 60 * 60; // 24 horas
+    if (!loading) {
+      const lastLogin = localStorage.getItem("lastLogin");
+      const loginTimeout = 1000 * 60 * 60 * 24;
 
-    if (lastLogin && (Date.now() - lastLogin) < loginTimeout && currentUser) {
-      setShowLogin(false);
-    } else {
-      setShowLogin(true);
+      if (lastLogin && Date.now() - lastLogin < loginTimeout && currentUser) {
+        setShowLogin(false);
+      } else {
+        setShowLogin(true);
+      }
     }
-  }, [currentUser]);
+  }, [currentUser, loading]);
 
-  const handleLoginSuccess = (user) => {
-    setShowLogin(false);
-  };
+  if (loading) return null; // ou um spinner, se quiser
 
-  return showLogin ? <Login onLoginSuccess={handleLoginSuccess} /> : <Homepage />;
+  return showLogin ? <Login onLoginSuccess={() => setShowLogin(false)} /> : <Homepage />;
 };
+
 
 function App() {
   return (

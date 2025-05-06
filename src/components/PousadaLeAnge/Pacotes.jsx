@@ -359,7 +359,7 @@ const EditModal = ({ eventData, onSave, onCancel }) => {
   const defaultTopics = [
     "Taxa pet free (não cobramos por pet)",
     "Todas as refeições incluídas",
-    ""
+    "Noite Especial no Sábado"
   ];
 
   const initialTopics = eventData.topics && eventData.topics.length === 3

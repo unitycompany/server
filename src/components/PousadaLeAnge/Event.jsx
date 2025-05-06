@@ -323,11 +323,10 @@ const EditModal = ({ eventData, onSave, onCancel }) => {
   const initialDataSaida = eventData.dataSaida || "";
 
   const defaultFeatures = [
-    { icon: "<FaCheck />" ,text: "Taxa pet free (não cobramos por pet)" },
-    { icon: "<FaCheck />" ,text: "Todas as refeições incluídas" },
-    { icon: "<FaCheck />" ,text: "" }
+    { icon: "<FaCheck />", text: "Taxa pet free (não cobramos por pet)" },
+    { icon: "<FaCheck />", text: "Todas as refeições incluídas" },
+    { icon: "<FaCheck />", text: "Noite Especial no Sábado" }
   ];
-
   // Se não houver features, inicia com um tópico padrão com ícone "<FaCheck />"
   const initialFeatures =
     eventData.features && eventData.features.length === 3
@@ -546,6 +545,7 @@ const EditModal = ({ eventData, onSave, onCancel }) => {
                   <span>Tópico {index + 1}:</span>
                   <InputContainer>
                     <input
+                      content="Noite Especial no Sábado"
                       type="text"
                       value={feat.text}
                       onChange={(e) => handleFeatureChange(index, "text", e.target.value)}

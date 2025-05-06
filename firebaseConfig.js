@@ -52,4 +52,3 @@ export const getDatabase = (dbName = "default") => {
     const app = initializeApp(firebaseConfigs[dbName], dbName);
     return getFirestore(app);
 };
-
