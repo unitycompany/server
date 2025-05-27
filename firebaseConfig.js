@@ -1,4 +1,4 @@
-import { initializeApp, getApps } from "firebase/app";
+import { initializeApp, getApps, getApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
 
@@ -38,17 +38,35 @@ const firebaseConfigs = {
     }
 };
 
-const defaultApp = !getApps().length ? initializeApp(firebaseConfigs["default"]) : getApp();
-const auth = getAuth(defaultApp);
-export { auth };
+// Inicializa (ou pega) a app padrão
+const defaultApp =
+  !getApps().length
+    ? initializeApp(firebaseConfigs.default)
+    : getApp("default");
 
-// Função para inicializar o banco de dados correto
-export const getDatabase = (dbName = "default") => {
-    if (!firebaseConfigs[dbName]) {
-        console.error(`Banco de dados "${dbName}" não encontrado.`);
-        return null;
-    }
-    
-    const app = initializeApp(firebaseConfigs[dbName], dbName);
-    return getFirestore(app);
-};
+// Exporta o Auth da app padrão
+export const auth = getAuth(defaultApp);
+
+/**
+ * Retorna a instância do Firestore para o dbName informado.
+ * @param {string} dbName — “default” ou “banco3”
+ */
+export function getDatabase(dbName = "default") {
+  if (!firebaseConfigs[dbName]) {
+    console.error(`Banco de dados "${dbName}" não encontrado.`);
+    return null;
+  }
+
+  if (dbName === "default") {
+    return getFirestore(defaultApp);
+  }
+
+  // Apps nomeados
+  let namedApp;
+  try {
+    namedApp = getApp(dbName);
+  } catch {
+    namedApp = initializeApp(firebaseConfigs[dbName], dbName);
+  }
+  return getFirestore(namedApp);
+}

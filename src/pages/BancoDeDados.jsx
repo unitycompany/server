@@ -57,6 +57,7 @@ const OptionContainer = styled.div`
 
 const BancoDeDados = () => {
   const [selectedComponent, setSelectedComponent] = useState(null);
+  const [isAddingFastHome, setIsAddingFastHome] = useState(false);
 
   const options = [
     {
@@ -92,12 +93,47 @@ const BancoDeDados = () => {
     <Content>
       <Top>
         <h1>Banco de dados</h1>
-        {selectedComponent && (
-          <button onClick={() => setSelectedComponent(null)}>Voltar</button>
-        )}
+        <div style={{ display: "flex", gap: 8 }}>
+          {selectedComponent && (
+            <button onClick={() => setSelectedComponent(null)}>Voltar</button>
+          )}
+          <button
+            onClick={() => {
+              if (
+                selectedComponent &&
+                selectedComponent.type &&
+                selectedComponent.type.name === "PousadaLeAnge"
+              ) {
+                alert("Adicionar item no banco: Pousada Le Ange");
+              } else if (
+                selectedComponent &&
+                selectedComponent.type &&
+                selectedComponent.type.name === "FastHomes"
+              ) {
+                setIsAddingFastHome(true);
+              } else if (
+                selectedComponent &&
+                selectedComponent.type &&
+                selectedComponent.type.name === "NovaMetalica"
+              ) {
+                alert("Adicionar item no banco: Nova Metálica");
+              } else {
+                alert("Selecione um banco de dados para adicionar.");
+              }
+            }}
+          >
+            Adicionar
+          </button>
+        </div>
       </Top>
       {selectedComponent ? (
-        <OptionContainer>{selectedComponent}</OptionContainer>
+        <OptionContainer>
+          {selectedComponent.type && selectedComponent.type.name === "FastHomes" && isAddingFastHome ? (
+            React.cloneElement(selectedComponent, { isAdding: isAddingFastHome, setIsAdding: setIsAddingFastHome })
+          ) : (
+            selectedComponent
+          )}
+        </OptionContainer>
       ) : (
         <Center>
           {options.map((option) => (

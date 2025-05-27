@@ -350,6 +350,7 @@ const AcessoLogins = () => {
     obs: "",
     googleLogin: false,
     empresa: "",
+    siteUrl: "",
   });
 
   // Estado de edição (mapeando "obs" para "social", mas inclui googleLogin e empresa)
@@ -361,6 +362,7 @@ const AcessoLogins = () => {
     social: "",
     googleLogin: false,
     empresa: "",
+    siteUrl: "",
   });
 
   const fetchLogins = useCallback(async () => {
@@ -392,6 +394,7 @@ const AcessoLogins = () => {
       obs: "",
       googleLogin: false,
       empresa: "",
+      siteUrl: "",
     });
     setModalAddIsOpen(false);
     toast.success("Login adicionado com sucesso!");
@@ -416,12 +419,13 @@ const AcessoLogins = () => {
       social: login.obs || "",
       googleLogin: login.googleLogin || false,
       empresa: login.empresa || "",
+      siteUrl: login.siteUrl || "",
     });
     setModalEditIsOpen(true);
   };
 
   const handleEditLogin = async () => {
-    const { id, nomeSite, login, senha, social, googleLogin, empresa } = editLoginData;
+    const { id, nomeSite, login, senha, social, googleLogin, empresa, siteUrl } = editLoginData;
     if (!nomeSite || !login || !senha) {
       toast.error("Preencha todos os campos!");
       return;
@@ -432,7 +436,8 @@ const AcessoLogins = () => {
       senha, 
       obs: social, 
       googleLogin, 
-      empresa 
+      empresa,
+      siteUrl
     });
     toast.success("Login atualizado com sucesso!");
     setModalEditIsOpen(false);
@@ -488,6 +493,7 @@ const AcessoLogins = () => {
               senha={login.senha}
               obs={login.obs}
               empresa={login.empresa}
+              siteUrl={login.siteUrl}
               googleLogin={login.googleLogin}
               onRemove={() => {
                 setLoginToDelete(login.id);
@@ -515,6 +521,15 @@ const AcessoLogins = () => {
                 type="text"
                 value={newLogin.nomeSite}
                 onChange={(e) => setNewLogin({ ...newLogin, nomeSite: e.target.value })}
+                onKeyDown={handleKeyPress}
+              />
+            </label>
+            <label>
+              <span>URL do site</span>
+              <input type="text" 
+                value={newLogin.siteUrl || ""}
+                onChange={(e) => setNewLogin({ ...newLogin, siteUrl: e.target.value })}
+                placeholder="https://www.exemplo.com"
                 onKeyDown={handleKeyPress}
               />
             </label>
@@ -613,6 +628,15 @@ const AcessoLogins = () => {
                 type="text"
                 value={editLoginData.nomeSite}
                 onChange={(e) => setEditLoginData({ ...editLoginData, nomeSite: e.target.value })}
+              />
+            </label>
+            <label>
+              <span>URL do site</span>
+              <input type="text" 
+                value={editLoginData.siteUrl || ""}
+                onChange={(e) => setEditLoginData({ ...editLoginData, siteUrl: e.target.value })}
+                placeholder="https://www.exemplo.com"
+                onKeyDown={handleKeyPress}
               />
             </label>
             <label>

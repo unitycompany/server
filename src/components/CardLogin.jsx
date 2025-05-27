@@ -1,8 +1,8 @@
-import React from "react";
+import React, { useState } from "react";
 import styled from "styled-components";
-import { 
-  FaLinkedin, FaInstagram, FaYoutube, FaFacebook, FaBehance, FaCpanel, FaFigma, FaGithub, 
-  FaGoogleDrive, FaGoogle, FaLink, FaMailchimp, FaPinterest, FaShopify, FaSpotify, FaTiktok, 
+import {
+  FaLinkedin, FaInstagram, FaYoutube, FaFacebook, FaBehance, FaCpanel, FaFigma, FaGithub,
+  FaGoogleDrive, FaGoogle, FaLink, FaMailchimp, FaPinterest, FaShopify, FaSpotify, FaTiktok,
   FaWordpress
 } from "react-icons/fa";
 import { IoLogoFirebase, IoLogoVercel } from "react-icons/io5";
@@ -10,10 +10,14 @@ import { FaMeta } from "react-icons/fa6";
 import { SiCloudflare, SiFreepik, SiGoogleads, SiMake, SiSemrush, SiZapier } from "react-icons/si";
 import { PiLinktreeLogo } from "react-icons/pi";
 import { FcGoogle } from "react-icons/fc";
+import { LiaExternalLinkAltSolid } from "react-icons/lia";
+import { IoCopyOutline, IoCopy } from "react-icons/io5";
+
+
 
 // Mapeamento de empresa => logo
 const companyLogos = {
-  "Nova Metálica": "https://imagedelivery.net/1n9Gwvykoj9c9m8C_4GsGA/40b3886f-6f2c-466e-88f5-6af0faa43a00/public", 
+  "Nova Metálica": "https://imagedelivery.net/1n9Gwvykoj9c9m8C_4GsGA/40b3886f-6f2c-466e-88f5-6af0faa43a00/public",
   "Fast Sistemas Construtivos": "https://imagedelivery.net/1n9Gwvykoj9c9m8C_4GsGA/ab2d9dea-3941-4e10-9c18-e421dbf99700/public",
   "Fast Homes": "https://imagedelivery.net/1n9Gwvykoj9c9m8C_4GsGA/e4c70620-1eb2-4aa5-cc40-cae32ffdec00/public",
   "Pousada Le Ange": "https://imagedelivery.net/1n9Gwvykoj9c9m8C_4GsGA/8dca7e66-ce93-48a8-b05b-7c8fd4fc6600/public",
@@ -31,6 +35,35 @@ const Card = styled.div`
   gap: 15px;
   min-width: 250px;
   position: relative;
+  transition: all 0.2s ease-in-out;
+
+  &:hover{
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+    border-color: #00000020;
+  }
+
+  & .visitar-site {
+    width: 100%;
+    margin-top: -10px;
+    padding: 5px 10px;
+    background-color: #20580a;
+    color: #fff;  
+    cursor: pointer;
+    font-size: 14px;  
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 5px;
+    transition: all .1s ease-in-out;
+
+    &:hover {
+      background-color: #33a107;
+    }
+
+    & svg {
+      font-size: 18px;
+    }
+  }
 
   & label {
     border: 1px solid #00000020;
@@ -51,6 +84,14 @@ const Card = styled.div`
     & p {
       font-size: 14px;
       color: #000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+
+      & button {
+        cursor: pointer;
+      }
     }
   }
 
@@ -173,15 +214,16 @@ const Empresa = styled.span`
   }
 `;
 
-const CardLogin = ({ 
-  nomeSite, 
-  login, 
-  senha, 
-  obs, 
-  onRemove, 
-  onEdit, 
-  empresa, 
-  googleLogin 
+const CardLogin = ({
+  nomeSite,
+  login,
+  senha,
+  obs,
+  onRemove,
+  onEdit,
+  empresa,
+  googleLogin,
+  siteUrl
 }) => {
   // Mapeia o nome da rede para o respectivo ícone
   const socialIcons = {
@@ -214,6 +256,29 @@ const CardLogin = ({
     freepik: <SiFreepik />,
   };
 
+  const [loginCopied, setLoginCopied] = useState(false);
+  const [senhaCopied, setSenhaCopied] = useState(false);
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(login);
+      setLoginCopied(true);
+      setTimeout(() => setLoginCopied(false), 1500);
+    } catch (err) {
+      setLoginCopied(false);
+    }
+  };
+
+  const senhaCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(senha);
+      setSenhaCopied(true);
+      setTimeout(() => setSenhaCopied(false), 1500);
+    } catch (err) {
+      setSenhaCopied(false);
+    }
+  };
+
   return (
     <Card>
       <CardTitle>
@@ -222,7 +287,7 @@ const CardLogin = ({
           <span title={obs}>{socialIcons[obs]}</span>
         ) : null}
       </CardTitle>
-      
+
       {/* Exibe o ícone do Google se googleLogin for true */}
       {googleLogin && (
         <Google>
@@ -239,16 +304,85 @@ const CardLogin = ({
 
       <label>
         <span>Login</span>
-        <p>{login}</p>
+        <p style={{ position: 'relative' }}>
+          {login}
+          <button
+            type="button"
+            onClick={handleCopy}
+            style={{ position: 'relative', marginLeft: 4 }}
+          >
+            {loginCopied && (
+              <span
+                style={{
+                  position: 'absolute',
+                  top: '-25px',
+                  left: '50%',
+                  transform: 'translateX(-50%)',
+                  background: '#dddddd',
+                  color: '#353535',
+                  fontSize: 10,
+                  borderRadius: 2,
+                  padding: '2px 4px',
+                  whiteSpace: 'nowrap',
+                  zIndex: 2,
+                  pointerEvents: 'none',
+                }}
+              >
+                Copiado
+              </span>
+            )}
+            {loginCopied ? <IoCopy /> : <IoCopyOutline />}
+          </button>
+        </p>
       </label>
       <label>
         <span>Senha</span>
-        <p>{senha}</p>
+        <p style={{ position: 'relative' }}>
+          {senha}
+          <button
+            type="button"
+            onClick={senhaCopy}
+            style={{ position: 'relative', marginLeft: 4 }}
+          >
+            {senhaCopied && (
+              <span
+                style={{
+                  position: 'absolute',
+                  top: '-25px',
+                  left: '50%',
+                  transform: 'translateX(-50%)',
+                  background: '#dddddd',
+                  color: '#353535',
+                  fontSize: 10,
+                  borderRadius: 2,
+                  padding: '2px 4px',
+                  whiteSpace: 'nowrap',
+                  zIndex: 2,
+                  pointerEvents: 'none',
+                }}
+              >
+                Copiado
+              </span>
+            )}
+            {senhaCopied ? <IoCopy /> : <IoCopyOutline />}
+          </button>
+        </p>
       </label>
       <div>
         <button onClick={onEdit}>Editar</button>
         <button onClick={onRemove}>Excluir</button>
       </div>
+      <button
+        className="visitar-site"
+        onClick={() => {
+          if (siteUrl) {
+            // abre em nova aba, de forma segura
+            window.open(siteUrl, '_blank', 'noopener,noreferrer');
+          } else {
+            alert("Não foi definido uma URL para o site.");
+          }
+        }}
+      >Visitar site <LiaExternalLinkAltSolid /></button>
     </Card>
   );
 };
