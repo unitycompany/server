@@ -651,15 +651,6 @@ const EditModal = ({ eventData, onSave, onCancel }) => {
     onSave(formValues);
   };
 
-  // Função para gerar slug (caso não exista)
-  function generateSlug(str) {
-    return str
-      .toLowerCase()
-      .normalize('NFD').replace(/[ -]/g, '')
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/(^-|-$)+/g, '');
-  }
-
   return (
     <ModalOverlay>
       <ModalContent>
@@ -850,45 +841,6 @@ const EditModal = ({ eventData, onSave, onCancel }) => {
                 style={{ resize: 'vertical', width: '100%', height: 'maxContent' }}
               />
             </label>
-            <ArraySection>
-              <h3>Carrossel da Seção</h3>
-              <aside>
-              {formValues.dobra2.carrossel.map((item, index) => (
-                <div key={index}>
-                  <input
-                    className="imageURL"
-                    type="text"
-                    value={item}
-                    onChange={(e) =>
-                      handleDobra2CarouselChange(index, e.target.value)
-                    }
-                    placeholder={`Imagem ${index + 1}`}
-                  />
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) =>
-                      handleArrayFileUpload(e, "dobra2", index, "carrossel")
-                    }
-                  />
-                  {carouselPreviews[index] && (
-                    <img
-                      src={carouselPreviews[index]}
-                      alt={`Preview Carrossel ${index + 1}`}
-                      style={{ width: 180, height: 100, marginLeft: 8, borderRadius: 4, border: '1px solid #ccc' }}
-                    />
-                  )}
-                  <button type="button" onClick={() => removeDobra2CarouselItem(index)}>
-                    Remover
-                  </button>
-                </div>
-              ))}
-              </aside>
-              <button type="button" onClick={addDobra2CarouselItem}>
-                Adicionar Imagem
-              </button>
-              
-            </ArraySection>
           </Section>
 
           {/* Seção Dobra3 - Organização dos 3 carrosseis */}
@@ -1125,7 +1077,7 @@ const FastHomes = ({ isAdding: isAddingProp = false, setIsAdding }) => {
   const handleAddSave = async (newValues) => {
     try {
       const nomeCasa = newValues.nome || '';
-      const idDoc = `casa-${generateSlug(nomeCasa)}`;
+      const idDoc = `casa-${newValues.slug}`;
       await addDoc(collection(db, "catalogo"), {
         ...newValues,
         area: newValues.area ? parseFloat(newValues.area) : 0,
@@ -1133,7 +1085,7 @@ const FastHomes = ({ isAdding: isAddingProp = false, setIsAdding }) => {
         liveViews: 0,
         views: 100,
         id: idDoc,
-        slug: newValues.slug || generateSlug(nomeCasa),
+        slug: newValues.slug,
       });
       if (typeof setIsAdding === 'function') setIsAdding(false);
       setIsAddingLocal(false);
