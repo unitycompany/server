@@ -7,6 +7,7 @@ import {
   doc,
   updateDoc,
   addDoc,
+  setDoc,
   serverTimestamp,
 } from "firebase/firestore";
 import { getDatabase } from "../../../firebaseConfig"; // ajuste o caminho conforme necessário
@@ -159,7 +160,7 @@ const ModalContent = styled.div`
   padding: 20px;
   width: 90%;
   max-width: 950px;
-  position: relative;
+  position: relative!important;;
   max-height: 80vh;
   overflow: auto;
   border-radius: 10px;
@@ -281,8 +282,20 @@ const ModalExcluir = styled.div`
 
 const Buttons = styled.div`
   display: flex;
-  align-items: center;
+  align-items: flex-start!important;
+  justify-content: flex-start!important;
+  width: 100%;
   gap: 10px;
+  border-top: 1px solid #00000050; 
+  padding-top: 20px;
+
+  & button:nth-child(1) {
+    background-color: #34b600;
+  }
+
+  & button:nth-child(2) {
+    background-color: #b60000;
+  }
 `;
 
 const AddButton = styled.button`
@@ -988,9 +1001,9 @@ const EditModal = ({ eventData, onSave, onCancel }) => {
           </Section>
 
           <Buttons>
-            <button type="submit">Salvar</button>
+            <button type="submit">Adicionar Casa</button>
             <button type="button" onClick={onCancel}>
-              Cancelar
+              Cancelar (você perderá as alterações)	
             </button>
           </Buttons>
         </form>
@@ -1076,9 +1089,8 @@ const FastHomes = ({ isAdding: isAddingProp = false, setIsAdding }) => {
 
   const handleAddSave = async (newValues) => {
     try {
-      const nomeCasa = newValues.nome || '';
       const idDoc = `casa-${newValues.slug}`;
-      await addDoc(collection(db, "catalogo"), {
+      await setDoc(doc(db, "catalogo", idDoc), {
         ...newValues,
         area: newValues.area ? parseFloat(newValues.area) : 0,
         create: serverTimestamp(),
