@@ -25,6 +25,26 @@ const Content = styled.div`
   justify-content: flex-start;
   flex-direction: column;
   gap: 5px;
+  position: relative;
+
+  & .botao-de-adicionar {
+    background-color: #0b6e0b;
+    width: 100%!important;
+    left: 2.5%;
+    position: sticky;
+    top: 0px;
+    z-index: 10;
+    box-shadow: 0 0 20px rgba(255, 255, 255, 0.5);
+
+    & button {
+      width: 100%;
+      height: 100%;
+      color: #fff;
+      font-weight: 500;
+          padding: 5px 10px;
+      cursor: pointer;
+    }
+  }
 `;
 
 const Card = styled.div`
@@ -1042,11 +1062,15 @@ const ConfirmDeleteModal = ({ onConfirm, onCancel }) => {
   );
 };
 
-const FastHomes = ({ isAdding = false, setIsAdding }) => {
+const FastHomes = ({ isAdding: isAddingProp = false, setIsAdding }) => {
   const [homes, setHomes] = useState([]);
   const [loading, setLoading] = useState(false);
   const [editingHome, setEditingHome] = useState(null);
   const [deleteHomeId, setDeleteHomeId] = useState(null);
+  // Estado local para fallback
+  const [isAddingLocal, setIsAddingLocal] = useState(false);
+
+  const isAdding = typeof setIsAdding === 'function' ? isAddingProp : isAddingLocal;
 
   const db = getDatabase("banco3");
 
@@ -1111,7 +1135,8 @@ const FastHomes = ({ isAdding = false, setIsAdding }) => {
         id: idDoc,
         slug: newValues.slug || generateSlug(nomeCasa),
       });
-      setIsAdding(false);
+      if (typeof setIsAdding === 'function') setIsAdding(false);
+      setIsAddingLocal(false);
       fetchHomes();
       toast.success("Casa adicionada com sucesso!");
     } catch (error) {
@@ -1151,6 +1176,15 @@ const FastHomes = ({ isAdding = false, setIsAdding }) => {
 
   return (
     <Content>
+      <div className="botao-de-adicionar">
+        <button onClick={() => {
+          setEditingHome(null);
+          if (typeof setIsAdding === 'function') setIsAdding(true);
+          else setIsAddingLocal(true);
+        }}>
+          + Adicionar Casa
+        </button>
+      </div>
       {loading ? (
         <p>Carregando...</p>
       ) : (
@@ -1165,11 +1199,14 @@ const FastHomes = ({ isAdding = false, setIsAdding }) => {
           onCancel={() => setEditingHome(null)}
         />
       )}
-      {isAdding && (
+      {isAdding && !editingHome && (
         <EditModal
           eventData={{}}
           onSave={handleAddSave}
-          onCancel={() => setIsAdding && setIsAdding(false)}
+          onCancel={() => {
+            if (typeof setIsAdding === 'function') setIsAdding(false);
+            setIsAddingLocal(false);
+          }}
         />
       )}
       {deleteHomeId && (

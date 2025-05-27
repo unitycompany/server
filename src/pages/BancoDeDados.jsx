@@ -97,33 +97,6 @@ const BancoDeDados = () => {
           {selectedComponent && (
             <button onClick={() => setSelectedComponent(null)}>Voltar</button>
           )}
-          <button
-            onClick={() => {
-              if (
-                selectedComponent &&
-                selectedComponent.type &&
-                selectedComponent.type.name === "PousadaLeAnge"
-              ) {
-                alert("Adicionar item no banco: Pousada Le Ange");
-              } else if (
-                selectedComponent &&
-                selectedComponent.type &&
-                selectedComponent.type.name === "FastHomes"
-              ) {
-                setIsAddingFastHome(true);
-              } else if (
-                selectedComponent &&
-                selectedComponent.type &&
-                selectedComponent.type.name === "NovaMetalica"
-              ) {
-                alert("Adicionar item no banco: Nova Metálica");
-              } else {
-                alert("Selecione um banco de dados para adicionar.");
-              }
-            }}
-          >
-            Adicionar
-          </button>
         </div>
       </Top>
       {selectedComponent ? (
