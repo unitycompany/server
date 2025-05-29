@@ -658,7 +658,7 @@ const ConfirmDeleteModal = ({ onConfirm, onCancel }) => {
   );
 };
 
-const Pacotes = () => {
+const Pacotes = ({ onBack }) => {
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(false);
   const [editingEvent, setEditingEvent] = useState(null);
@@ -748,21 +748,27 @@ const Pacotes = () => {
 
   return (
     <Content>
+      <div style={{ marginBottom: "20px", display: 'flex', alignItems: 'center', gap: 10 }}>
+        <AddButton
+          className="adicionar"
+          onClick={() => {
+            setIsAdding(true);
+            setEditingEvent(null);
+          }}
+        >
+          Adicionar Pacote
+        </AddButton>
+        <AddButton
+          style={{ padding: '5px 15px', background: '#fff', border: '2px solid #000', color: '#000', fontWeight: 500, cursor: 'pointer', fontSize: 16 }}
+          onClick={onBack ? onBack : () => window.location.reload()}
+        >
+          Voltar
+        </AddButton>
+      </div>
       {loading ? (
         <p>Carregando...</p>
       ) : (
         <>
-          <div style={{ marginBottom: "20px" }}>
-            <AddButton
-              className="adicionar"
-              onClick={() => {
-                setIsAdding(true);
-                setEditingEvent(null);
-              }}
-            >
-              Adicionar Pacote
-            </AddButton>
-          </div>
           <CardGrid>{events.map((event) => renderCard(event))}</CardGrid>
         </>
       )}

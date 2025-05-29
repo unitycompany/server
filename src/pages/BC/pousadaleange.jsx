@@ -4,8 +4,8 @@ import styled from "styled-components";
 const Container = styled.div`
   overflow-y: auto;
   height: auto;
-  max-height: 65vh;
-  padding: 5px;
+  max-height: 80vh;
+  padding: 0px 10px 20px 10px;
 `;
 
 const Options = styled.div`
@@ -29,7 +29,6 @@ const Options = styled.div`
       align-items: flex-start;
       justify-content: flex-start;
       gap: 10px;
-      border-left: 1px solid #00000050;
       padding-left: 5px;
 
       & h1 {
@@ -90,9 +89,9 @@ const PousadaLeAnge = () => {
           </div>
         </Options>
       ) : selectedComponent === "Eventos" ? (
-        <Event />
+        <Event onBack={() => setSelectedComponent(null)} />
       ) : (
-        <Pacotes />
+        <Pacotes onBack={() => setSelectedComponent(null)} />
       )}
     </Container>
   );

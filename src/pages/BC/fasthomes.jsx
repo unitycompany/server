@@ -17,7 +17,7 @@ import { LiaExternalLinkAltSolid } from "react-icons/lia";
 
 // Estilizações
 const Content = styled.div`
-  max-height: 65vh;
+  max-height: 80vh;
   height: auto;
   width: 100%;
   overflow-y: auto;
@@ -25,7 +25,8 @@ const Content = styled.div`
   align-items: flex-start;
   justify-content: flex-start;
   flex-direction: column;
-  gap: 5px;
+  gap: 10px;
+  padding: 0px 10px 20px 10px;
   position: relative;
 
   & .botao-de-adicionar {
