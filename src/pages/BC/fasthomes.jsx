@@ -1144,8 +1144,11 @@ const FastHomes = ({ isAdding: isAddingProp = false, setIsAdding }) => {
       <div className="botao-de-adicionar">
         <button onClick={() => {
           setEditingHome(null);
-          if (typeof setIsAdding === 'function') setIsAdding(true);
-          else setIsAddingLocal(true);
+          if (typeof setIsAdding === 'function') {
+            setIsAdding(true);
+          } else {
+            setIsAddingLocal(true);
+          }
         }}>
           + Adicionar Casa
         </button>
