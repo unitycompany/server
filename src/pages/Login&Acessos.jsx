@@ -13,10 +13,12 @@ import {
 } from "react-icons/fa";
 import { FaMeta } from "react-icons/fa6";
 import { IoLogoFirebase, IoLogoVercel } from "react-icons/io5";
-import { SiCloudflare, SiFreepik, SiGoogleads, SiMake, SiSemrush, SiZapier } from "react-icons/si";
+import { SiCloudflare, SiFreepik, SiGoogleads, SiMake, SiSemrush, SiUdemy, SiZapier } from "react-icons/si";
 import { PiLinktreeLogo } from "react-icons/pi";
 import { FcGoogle } from "react-icons/fc";
 import { IoIosSearch } from "react-icons/io";
+import { RiFileExcel2Fill } from "react-icons/ri";
+import { BsRocketTakeoff } from "react-icons/bs";
 
 // Configuração do modal
 Modal.setAppElement("#root");
@@ -59,6 +61,9 @@ const socialOptions = [
   { name: "firebase", icon: <IoLogoFirebase /> },
   { name: "semrush", icon: <SiSemrush /> },
   { name: "freepik", icon: <SiFreepik /> },
+  { name: "excel", icon: <RiFileExcel2Fill /> },
+  { name: "turbocloud", icon: <BsRocketTakeoff /> },
+  { name: "udemy", icon: <SiUdemy /> },
 ];
 
 // Novo styled component para o checkbox com estilo customizado
@@ -361,7 +366,7 @@ const AcessoLogins = () => {
   const [empresaFilter, setEmpresaFilter] = useState("");
   const [showCursosOnly, setShowCursosOnly] = useState(false);
 
-  // Estado do novo login (inclui googleLogin e empresa)
+  // Estado do novo login (inclui googleLogin, empresa e cursoLogin)
   const [newLogin, setNewLogin] = useState({
     nomeSite: "",
     login: "",
@@ -370,6 +375,7 @@ const AcessoLogins = () => {
     googleLogin: false,
     empresa: "",
     siteUrl: "",
+    cursoLogin: false, // Adicionado campo explicitamente
   });
 
   // Estado de edição (mapeando "obs" para "social", mas inclui googleLogin e empresa)
@@ -397,7 +403,7 @@ const AcessoLogins = () => {
   const filteredLogins = logins.filter((login) => {
     const matchNomeSite = login.nomeSite.toLowerCase().includes(searchTerm.toLowerCase());
     const matchEmpresa = empresaFilter ? login.empresa === empresaFilter : true;
-    const matchCurso = showCursosOnly ? login.cursoLogin : true;
+    const matchCurso = showCursosOnly ? login.cursoLogin === true : true;
     return matchNomeSite && matchEmpresa && matchCurso;
   });
 
@@ -406,7 +412,7 @@ const AcessoLogins = () => {
       toast.error("Preencha todos os campos!");
       return;
     }
-    await addLogin(dbName, newLogin);
+    await addLogin(dbName, newLogin); // newLogin já inclui cursoLogin
     setNewLogin({
       nomeSite: "",
       login: "",
@@ -415,6 +421,7 @@ const AcessoLogins = () => {
       googleLogin: false,
       empresa: "",
       siteUrl: "",
+      cursoLogin: false, // Resetar campo
     });
     setModalAddIsOpen(false);
     toast.success("Login adicionado com sucesso!");
@@ -472,6 +479,9 @@ const AcessoLogins = () => {
     }
   };
 
+  // Verifica se há pelo menos um login de curso
+  const hasCursos = filteredLogins.some(login => login.cursoLogin);
+
   return (
     <>
       <Content>
@@ -511,14 +521,14 @@ const AcessoLogins = () => {
                 borderColor: showCursosOnly ? '#ffffff80' : undefined,
               }}
             >
-              Cursos
+              {showCursosOnly ? 'Voltar' : 'Cursos'}
             </button>
             <button onClick={() => setModalAddIsOpen(true)}>Adicionar novo login</button>
           </aside>
 
         </Top>
 
-        <Container>
+        <Container hasCursos={hasCursos}>
           {filteredLogins.map((login) => (
             <CardLogin
               key={login.id}
@@ -535,6 +545,7 @@ const AcessoLogins = () => {
                 setDeleteModal(true);
               }}
               onEdit={() => openEditModal(login)}
+              className={login.cursoLogin ? 'curso-card' : ''}
             />
           ))}
         </Container>

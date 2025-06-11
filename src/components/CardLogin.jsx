@@ -7,11 +7,13 @@ import {
 } from "react-icons/fa";
 import { IoLogoFirebase, IoLogoVercel } from "react-icons/io5";
 import { FaMeta } from "react-icons/fa6";
-import { SiCloudflare, SiFreepik, SiGoogleads, SiMake, SiSemrush, SiZapier } from "react-icons/si";
+import { SiCloudflare, SiFreepik, SiGoogleads, SiMake, SiSemrush, SiUdemy, SiZapier } from "react-icons/si";
 import { PiLinktreeLogo } from "react-icons/pi";
 import { FcGoogle } from "react-icons/fc";
 import { LiaExternalLinkAltSolid } from "react-icons/lia";
 import { IoCopyOutline, IoCopy } from "react-icons/io5";
+import { RiFileExcel2Fill } from "react-icons/ri";
+import { BsRocketTakeoff } from "react-icons/bs";
 
 
 
@@ -38,7 +40,8 @@ const Card = styled.div`
   transition: all 0.2s ease-in-out;
 
   &:hover{
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 0 30px rgba(0, 0, 0, 0.5);
+    transform: scale(1.02);
     border-color: #00000020;
   }
 
@@ -77,8 +80,8 @@ const Card = styled.div`
       left: 5px;
       position: absolute;
       font-size: 12px;
-      font-weight: 600;
-      color: #00000080;
+      font-weight: 500;
+      color: #00000090;
     }
 
     & p {
@@ -254,6 +257,9 @@ const CardLogin = ({
     firebase: <IoLogoFirebase />,
     semrush: <SiSemrush />,
     freepik: <SiFreepik />,
+    excel: <RiFileExcel2Fill />,
+    turbocloud: <BsRocketTakeoff />,
+    udemy: <SiUdemy />,
   };
 
   const [loginCopied, setLoginCopied] = useState(false);
