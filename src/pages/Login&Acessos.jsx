@@ -5,10 +5,10 @@ import { getLogins, addLogin, removeLogin, editLogin } from "./../../firebaseSer
 import Modal from "react-modal";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import { 
-  FaLink, FaLinkedin, FaInstagram, FaYoutube, FaFacebook, FaBehance, FaCpanel, 
-  FaFigma, FaGithub, FaGoogleDrive, FaGoogle, FaMailchimp, FaPinterest, FaShopify, 
-  FaSpotify, FaTiktok, FaWordpress, 
+import {
+  FaLink, FaLinkedin, FaInstagram, FaYoutube, FaFacebook, FaBehance, FaCpanel,
+  FaFigma, FaGithub, FaGoogleDrive, FaGoogle, FaMailchimp, FaPinterest, FaShopify,
+  FaSpotify, FaTiktok, FaWordpress,
   FaSearch
 } from "react-icons/fa";
 import { FaMeta } from "react-icons/fa6";
@@ -23,7 +23,7 @@ Modal.setAppElement("#root");
 
 // Objeto para mapear o nome da empresa à sua logo
 const companyLogos = {
-  "Nova Metálica": "https://via.placeholder.com/40x40?text=Nova", 
+  "Nova Metálica": "https://via.placeholder.com/40x40?text=Nova",
   "Fast Sistemas Construtivos": "https://via.placeholder.com/40x40?text=FastSC",
   "Fast Homes": "https://via.placeholder.com/40x40?text=FastH",
   "Pousada Le Ange": "https://via.placeholder.com/40x40?text=LeAnge",
@@ -54,11 +54,11 @@ const socialOptions = [
   { name: "googleads", icon: <SiGoogleads /> },
   { name: "linktree", icon: <PiLinktreeLogo /> },
   { name: "zapier", icon: <SiZapier /> },
-  { name: "make", icon: <SiMake />},
+  { name: "make", icon: <SiMake /> },
   { name: "cloudflare", icon: <SiCloudflare /> },
   { name: "firebase", icon: <IoLogoFirebase /> },
   { name: "semrush", icon: <SiSemrush /> },
-  { name: "freepik", icon: <SiFreepik />  },
+  { name: "freepik", icon: <SiFreepik /> },
 ];
 
 // Novo styled component para o checkbox com estilo customizado
@@ -134,6 +134,13 @@ const Top = styled.div`
   background-color: #ffffff;
   box-shadow: 0 0 50px rgba(255,255,255, 1);
   z-index: 1;
+
+    & > aside {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+  }
   
   & button {
     padding: 5px 15px;
@@ -143,6 +150,17 @@ const Top = styled.div`
     cursor: pointer;
     font-size: 14px;
     transition: all 0.2s ease;
+
+    &:nth-child(1){
+      background-color: transparent;
+      color: #000;
+
+      &:hover{
+        background-color: #000;
+        color: #fff;
+      }
+    }
+
     &:hover {
       background-color: #00ff2a1f;
       color: #000;
@@ -341,6 +359,7 @@ const AcessoLogins = () => {
   // Estados para filtros
   const [searchTerm, setSearchTerm] = useState("");
   const [empresaFilter, setEmpresaFilter] = useState("");
+  const [showCursosOnly, setShowCursosOnly] = useState(false);
 
   // Estado do novo login (inclui googleLogin e empresa)
   const [newLogin, setNewLogin] = useState({
@@ -374,11 +393,12 @@ const AcessoLogins = () => {
     fetchLogins();
   }, [fetchLogins, reload]);
 
-  // Filtrando os logins conforme o termo de busca e a empresa selecionada
+  // Filtrando os logins conforme o termo de busca, empresa e cursos
   const filteredLogins = logins.filter((login) => {
     const matchNomeSite = login.nomeSite.toLowerCase().includes(searchTerm.toLowerCase());
     const matchEmpresa = empresaFilter ? login.empresa === empresaFilter : true;
-    return matchNomeSite && matchEmpresa;
+    const matchCurso = showCursosOnly ? login.cursoLogin : true;
+    return matchNomeSite && matchEmpresa && matchCurso;
   });
 
   const handleAddLogin = async () => {
@@ -420,24 +440,26 @@ const AcessoLogins = () => {
       googleLogin: login.googleLogin || false,
       empresa: login.empresa || "",
       siteUrl: login.siteUrl || "",
+      cursoLogin: login.cursoLogin || false,
     });
     setModalEditIsOpen(true);
   };
 
   const handleEditLogin = async () => {
-    const { id, nomeSite, login, senha, social, googleLogin, empresa, siteUrl } = editLoginData;
+    const { id, nomeSite, login, senha, social, googleLogin, empresa, siteUrl, cursoLogin } = editLoginData;
     if (!nomeSite || !login || !senha) {
       toast.error("Preencha todos os campos!");
       return;
     }
-    await editLogin(dbName, id, { 
-      nomeSite, 
-      login, 
-      senha, 
-      obs: social, 
-      googleLogin, 
+    await editLogin(dbName, id, {
+      nomeSite,
+      login,
+      senha,
+      obs: social,
+      googleLogin,
       empresa,
-      siteUrl
+      siteUrl,
+      cursoLogin
     });
     toast.success("Login atualizado com sucesso!");
     setModalEditIsOpen(false);
@@ -480,7 +502,20 @@ const AcessoLogins = () => {
             </select>
           </FilterContainer>
 
-          <button onClick={() => setModalAddIsOpen(true)}>Adicionar novo login</button>
+          <aside>
+            <button
+              onClick={() => setShowCursosOnly((prev) => !prev)}
+              style={{
+                background: showCursosOnly ? '#000' : undefined,
+                color: showCursosOnly ? '#fff' : undefined,
+                borderColor: showCursosOnly ? '#ffffff80' : undefined,
+              }}
+            >
+              Cursos
+            </button>
+            <button onClick={() => setModalAddIsOpen(true)}>Adicionar novo login</button>
+          </aside>
+
         </Top>
 
         <Container>
@@ -526,7 +561,7 @@ const AcessoLogins = () => {
             </label>
             <label>
               <span>URL do site</span>
-              <input type="text" 
+              <input type="text"
                 value={newLogin.siteUrl || ""}
                 onChange={(e) => setNewLogin({ ...newLogin, siteUrl: e.target.value })}
                 placeholder="https://www.exemplo.com"
@@ -602,6 +637,24 @@ const AcessoLogins = () => {
               </CheckboxContainer>
             </div>
 
+            <div className="StyleGoogle">
+              <span>É um link de curso?</span>
+              <CheckboxContainer>
+                <input
+                  type="checkbox"
+                  checked={newLogin.cursoLogin || false}
+                  onChange={(e) => setNewLogin({ ...newLogin, cursoLogin: e.target.checked })}
+                />
+                <svg viewBox="0 0 64 64">
+                  <path
+                    d="M 0 16 V 56 A 8 8 90 0 0 8 64 H 56 A 8 8 90 0 0 64 56 V 8 A 8 8 90 0 0 56 0 H 8 A 8 8 90 0 0 0 8 V 16 L 32 48 L 64 16 V 8 A 8 8 90 0 0 56 0 H 8 A 8 8 90 0 0 0 8 V 56 A 8 8 90 0 0 8 64 H 56 A 8 8 90 0 0 64 56 V 16"
+                    pathLength="575.0541381835938"
+                    className="path"
+                  ></path>
+                </svg>
+              </CheckboxContainer>
+            </div>
+
             <button onClick={handleAddLogin}>Criar login</button>
           </ModalContent>
         </Modal>
@@ -632,7 +685,7 @@ const AcessoLogins = () => {
             </label>
             <label>
               <span>URL do site</span>
-              <input type="text" 
+              <input type="text"
                 value={editLoginData.siteUrl || ""}
                 onChange={(e) => setEditLoginData({ ...editLoginData, siteUrl: e.target.value })}
                 placeholder="https://www.exemplo.com"
@@ -688,13 +741,30 @@ const AcessoLogins = () => {
             </label>
 
             {/* Checkbox customizado para "É necessário logar pelo Google?" */}
-            <div className="StyleGoogle"> 
+            <div className="StyleGoogle">
               <span>É necessário logar pelo Google?</span>
               <CheckboxContainer>
                 <input
                   type="checkbox"
                   checked={editLoginData.googleLogin}
                   onChange={(e) => setEditLoginData({ ...editLoginData, googleLogin: e.target.checked })}
+                />
+                <svg viewBox="0 0 64 64">
+                  <path
+                    d="M 0 16 V 56 A 8 8 90 0 0 8 64 H 56 A 8 8 90 0 0 64 56 V 8 A 8 8 90 0 0 56 0 H 8 A 8 8 90 0 0 0 8 V 16 L 32 48 L 64 16 V 8 A 8 8 90 0 0 56 0 H 8 A 8 8 90 0 0 0 8 V 56 A 8 8 90 0 0 8 64 H 56 A 8 8 90 0 0 64 56 V 16"
+                    pathLength="575.0541381835938"
+                    className="path"
+                  ></path>
+                </svg>
+              </CheckboxContainer>
+            </div>
+            <div className="StyleGoogle">
+              <span>É um link de curso?</span>
+              <CheckboxContainer>
+                <input
+                  type="checkbox"
+                  checked={editLoginData.cursoLogin || false}
+                  onChange={(e) => setEditLoginData({ ...editLoginData, cursoLogin: e.target.checked })}
                 />
                 <svg viewBox="0 0 64 64">
                   <path
