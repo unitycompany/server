@@ -366,7 +366,7 @@ const AcessoLogins = () => {
   const [empresaFilter, setEmpresaFilter] = useState("");
   const [showCursosOnly, setShowCursosOnly] = useState(false);
 
-  // Estado do novo login (inclui googleLogin, empresa e cursoLogin)
+  // Estado do novo login (inclui googleLogin, empresa, cursoLogin e cardFixo)
   const [newLogin, setNewLogin] = useState({
     nomeSite: "",
     login: "",
@@ -376,9 +376,10 @@ const AcessoLogins = () => {
     empresa: "",
     siteUrl: "",
     cursoLogin: false, // Adicionado campo explicitamente
+    cardFixo: false, // Novo campo para card fixo
   });
 
-  // Estado de edição (mapeando "obs" para "social", mas inclui googleLogin e empresa)
+  // Estado de edição (mapeando "obs" para "social", mas inclui googleLogin, empresa, cursoLogin e cardFixo)
   const [editLoginData, setEditLoginData] = useState({
     id: "",
     nomeSite: "",
@@ -388,6 +389,7 @@ const AcessoLogins = () => {
     googleLogin: false,
     empresa: "",
     siteUrl: "",
+    cardFixo: false, // Novo campo para card fixo
   });
 
   const fetchLogins = useCallback(async () => {
@@ -407,6 +409,16 @@ const AcessoLogins = () => {
     return matchNomeSite && matchEmpresa && matchCurso;
   });
 
+  // Organizar logins: fixos primeiro, depois ordem alfabética
+  const sortedLogins = filteredLogins.sort((a, b) => {
+    // Cards fixos sempre primeiro
+    if (a.cardFixo && !b.cardFixo) return -1;
+    if (!a.cardFixo && b.cardFixo) return 1;
+
+    // Se ambos são fixos ou ambos não são fixos, ordenar alfabeticamente
+    return a.nomeSite.localeCompare(b.nomeSite);
+  });
+
   const handleAddLogin = async () => {
     if (!newLogin.nomeSite || !newLogin.login || !newLogin.senha) {
       toast.error("Preencha todos os campos!");
@@ -422,6 +434,7 @@ const AcessoLogins = () => {
       empresa: "",
       siteUrl: "",
       cursoLogin: false, // Resetar campo
+      cardFixo: false, // Resetar campo
     });
     setModalAddIsOpen(false);
     toast.success("Login adicionado com sucesso!");
@@ -448,12 +461,13 @@ const AcessoLogins = () => {
       empresa: login.empresa || "",
       siteUrl: login.siteUrl || "",
       cursoLogin: login.cursoLogin || false,
+      cardFixo: login.cardFixo || false,
     });
     setModalEditIsOpen(true);
   };
 
   const handleEditLogin = async () => {
-    const { id, nomeSite, login, senha, social, googleLogin, empresa, siteUrl, cursoLogin } = editLoginData;
+    const { id, nomeSite, login, senha, social, googleLogin, empresa, siteUrl, cursoLogin, cardFixo } = editLoginData;
     if (!nomeSite || !login || !senha) {
       toast.error("Preencha todos os campos!");
       return;
@@ -466,7 +480,8 @@ const AcessoLogins = () => {
       googleLogin,
       empresa,
       siteUrl,
-      cursoLogin
+      cursoLogin,
+      cardFixo
     });
     toast.success("Login atualizado com sucesso!");
     setModalEditIsOpen(false);
@@ -480,7 +495,7 @@ const AcessoLogins = () => {
   };
 
   // Verifica se há pelo menos um login de curso
-  const hasCursos = filteredLogins.some(login => login.cursoLogin);
+  const hasCursos = sortedLogins.some(login => login.cursoLogin);
 
   return (
     <>
@@ -529,7 +544,7 @@ const AcessoLogins = () => {
         </Top>
 
         <Container hasCursos={hasCursos}>
-          {filteredLogins.map((login) => (
+          {sortedLogins.map((login) => (
             <CardLogin
               key={login.id}
               id={login.id}
@@ -546,6 +561,8 @@ const AcessoLogins = () => {
               }}
               onEdit={() => openEditModal(login)}
               className={login.cursoLogin ? 'curso-card' : ''}
+              cursoLogin={login.cursoLogin}
+              cardFixo={login.cardFixo}
             />
           ))}
         </Container>
@@ -655,6 +672,24 @@ const AcessoLogins = () => {
                   type="checkbox"
                   checked={newLogin.cursoLogin || false}
                   onChange={(e) => setNewLogin({ ...newLogin, cursoLogin: e.target.checked })}
+                />
+                <svg viewBox="0 0 64 64">
+                  <path
+                    d="M 0 16 V 56 A 8 8 90 0 0 8 64 H 56 A 8 8 90 0 0 64 56 V 8 A 8 8 90 0 0 56 0 H 8 A 8 8 90 0 0 0 8 V 16 L 32 48 L 64 16 V 8 A 8 8 90 0 0 56 0 H 8 A 8 8 90 0 0 0 8 V 56 A 8 8 90 0 0 8 64 H 56 A 8 8 90 0 0 64 56 V 16"
+                    pathLength="575.0541381835938"
+                    className="path"
+                  ></path>
+                </svg>
+              </CheckboxContainer>
+            </div>
+
+            <div className="StyleGoogle">
+              <span>É um card fixo?</span>
+              <CheckboxContainer>
+                <input
+                  type="checkbox"
+                  checked={newLogin.cardFixo || false}
+                  onChange={(e) => setNewLogin({ ...newLogin, cardFixo: e.target.checked })}
                 />
                 <svg viewBox="0 0 64 64">
                   <path
@@ -776,6 +811,23 @@ const AcessoLogins = () => {
                   type="checkbox"
                   checked={editLoginData.cursoLogin || false}
                   onChange={(e) => setEditLoginData({ ...editLoginData, cursoLogin: e.target.checked })}
+                />
+                <svg viewBox="0 0 64 64">
+                  <path
+                    d="M 0 16 V 56 A 8 8 90 0 0 8 64 H 56 A 8 8 90 0 0 64 56 V 8 A 8 8 90 0 0 56 0 H 8 A 8 8 90 0 0 0 8 V 16 L 32 48 L 64 16 V 8 A 8 8 90 0 0 56 0 H 8 A 8 8 90 0 0 0 8 V 56 A 8 8 90 0 0 8 64 H 56 A 8 8 90 0 0 64 56 V 16"
+                    pathLength="575.0541381835938"
+                    className="path"
+                  ></path>
+                </svg>
+              </CheckboxContainer>
+            </div>
+            <div className="StyleGoogle">
+              <span>É um card fixo?</span>
+              <CheckboxContainer>
+                <input
+                  type="checkbox"
+                  checked={editLoginData.cardFixo || false}
+                  onChange={(e) => setEditLoginData({ ...editLoginData, cardFixo: e.target.checked })}
                 />
                 <svg viewBox="0 0 64 64">
                   <path

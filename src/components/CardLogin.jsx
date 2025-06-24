@@ -28,7 +28,9 @@ const companyLogos = {
 };
 
 const Card = styled.div`
-  border: 1px solid #00000030;
+  border: 1px solid ${props =>
+    props.cardFixo ? '#FFD700' :
+      props.cursoLogin ? '#34b600' : '#00000030'};
   padding: 5px;
   display: flex;
   align-items: flex-start;
@@ -38,11 +40,17 @@ const Card = styled.div`
   min-width: 250px;
   position: relative;
   transition: all 0.2s ease-in-out;
+  ${props => props.cardFixo && `
+    box-shadow: 0 0 10px 2px #FFD70050;
+    background: linear-gradient(135deg, #FFFEF7 0%, #FFF9E6 100%);
+  `}
 
   &:hover{
     box-shadow: 0 0 30px rgba(0, 0, 0, 0.5);
     transform: scale(1.02);
-    border-color: #00000020;
+    border-color: ${props =>
+    props.cardFixo ? '#FFD700' :
+      props.cursoLogin ? '#34b600' : '#00000020'};
   }
 
   & .visitar-site {
@@ -217,6 +225,23 @@ const Empresa = styled.span`
   }
 `;
 
+const FixedBadge = styled.span`
+  position: absolute;
+  top: -10px;
+  right: -10px;
+  background: linear-gradient(45deg, #FFD700, #FFA500);
+  color: #333;
+  font-size: 8px;
+  font-weight: bold;
+  padding: 2px 5px;
+  border-radius: 3px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+  border: 1px solid #FFF;
+  z-index: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+`;
+
 const CardLogin = ({
   nomeSite,
   login,
@@ -226,7 +251,9 @@ const CardLogin = ({
   onEdit,
   empresa,
   googleLogin,
-  siteUrl
+  siteUrl,
+  cursoLogin,
+  cardFixo
 }) => {
   // Mapeia o nome da rede para o respectivo ícone
   const socialIcons = {
@@ -257,9 +284,6 @@ const CardLogin = ({
     firebase: <IoLogoFirebase />,
     semrush: <SiSemrush />,
     freepik: <SiFreepik />,
-    excel: <RiFileExcel2Fill />,
-    turbocloud: <BsRocketTakeoff />,
-    udemy: <SiUdemy />,
   };
 
   const [loginCopied, setLoginCopied] = useState(false);
@@ -286,7 +310,10 @@ const CardLogin = ({
   };
 
   return (
-    <Card>
+    <Card cursoLogin={cursoLogin} cardFixo={cardFixo}>
+      {/* Badge especial para cards fixos */}
+      {cardFixo && <FixedBadge>FIXO</FixedBadge>}
+
       <CardTitle>
         <h1>{nomeSite}</h1>
         {obs && socialIcons[obs] ? (
@@ -306,6 +333,13 @@ const CardLogin = ({
         <Empresa>
           <img src={companyLogos[empresa]} alt={empresa} title={empresa} />
         </Empresa>
+      )}
+
+      {/* Exibe o distintivo "FIXO" se cardFixo for true */}
+      {cardFixo && (
+        <FixedBadge>
+          Fixo
+        </FixedBadge>
       )}
 
       <label>

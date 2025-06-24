@@ -89,9 +89,9 @@ const PousadaLeAnge = () => {
           </div>
         </Options>
       ) : selectedComponent === "Eventos" ? (
-        <Event onBack={() => setSelectedComponent(null)} />
+        <Event />
       ) : (
-        <Pacotes onBack={() => setSelectedComponent(null)} />
+        <Pacotes />
       )}
     </Container>
   );
