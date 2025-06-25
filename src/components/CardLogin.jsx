@@ -12,10 +12,6 @@ import { PiLinktreeLogo } from "react-icons/pi";
 import { FcGoogle } from "react-icons/fc";
 import { LiaExternalLinkAltSolid } from "react-icons/lia";
 import { IoCopyOutline, IoCopy } from "react-icons/io5";
-import { RiFileExcel2Fill } from "react-icons/ri";
-import { BsRocketTakeoff } from "react-icons/bs";
-
-
 
 // Mapeamento de empresa => logo
 const companyLogos = {
@@ -46,7 +42,9 @@ const Card = styled.div`
   `}
 
   &:hover{
-    box-shadow: 0 0 30px rgba(0, 0, 0, 0.5);
+    box-shadow: ${props =>
+      props.cardFixo ? '0 0 20px rgba(255, 215, 0, 0.5)' :
+      props.cursoLogin ? '0 0 20px rgba(52, 182, 0, 0.5)' : '0 0 20px rgba(0, 0, 0, 0.5)'};
     transform: scale(1.02);
     border-color: ${props =>
     props.cardFixo ? '#FFD700' :
