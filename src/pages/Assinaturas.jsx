@@ -1045,6 +1045,17 @@ const Assinaturas = () => {
     setReload((prev) => !prev);
   };
 
+  // Função para formatar valores no padrão brasileiro
+  const formatarValorBrasileiro = (valor) => {
+    if (!valor || valor === "" || isNaN(parseFloat(valor))) return "0,00";
+    
+    const numero = parseFloat(valor);
+    return numero.toLocaleString('pt-BR', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    });
+  };
+
   const formatarValor = (assinatura) => {
     // Verificações de segurança
     if (!assinatura) return "Não informado";
@@ -1053,11 +1064,14 @@ const Assinaturas = () => {
     const sufixo = assinatura.tipoPagamento === "anual" ? "/ano" : "/mês";
 
     if (assinatura.valorRelativo && assinatura.valorMin && assinatura.valorMax) {
-      return `${simboloMoeda} ${assinatura.valorMin} - ${assinatura.valorMax} ${sufixo}`;
+      const valorMinFormatado = formatarValorBrasileiro(assinatura.valorMin);
+      const valorMaxFormatado = formatarValorBrasileiro(assinatura.valorMax);
+      return `${simboloMoeda} ${valorMinFormatado} - ${valorMaxFormatado} ${sufixo}`;
     }
     
     if (assinatura.mensalidade && assinatura.mensalidade !== "") {
-      return `${simboloMoeda} ${assinatura.mensalidade} ${sufixo}`;
+      const valorFormatado = formatarValorBrasileiro(assinatura.mensalidade);
+      return `${simboloMoeda} ${valorFormatado} ${sufixo}`;
     }
 
     return "Não informado";
@@ -1183,8 +1197,8 @@ const Assinaturas = () => {
     // Adicionar dados do resumo (apenas em reais)
     const resumoData = [
       ["Assinaturas Ativas", totais.quantidadeAtivos],
-      ["Total Mensal (R$)", `R$ ${totais.totalMensalReal.toFixed(2)}`],
-      ["Total Anual (R$)", `R$ ${totais.totalAnualReal.toFixed(2)}`]
+      ["Total Mensal (R$)", `R$ ${formatarValorBrasileiro(totais.totalMensalReal)}`],
+      ["Total Anual (R$)", `R$ ${formatarValorBrasileiro(totais.totalAnualReal)}`]
     ];
     
     XLSX.utils.sheet_add_aoa(ws, resumoData, { origin: `A${resumoInicio + 1}` });
@@ -1327,12 +1341,12 @@ const Assinaturas = () => {
               
               <div className="resumo-item">
                 <div className="label">Custo Mensal Total</div>
-                <div className="valor">R$ {totais.totalMensalReal.toFixed(2)}</div>
+                <div className="valor">R$ {formatarValorBrasileiro(totais.totalMensalReal)}</div>
               </div>
               
               <div className="resumo-item">
                 <div className="label">Custo Anual Total</div>
-                <div className="valor">R$ {totais.totalAnualReal.toFixed(2)}</div>
+                <div className="valor">R$ {formatarValorBrasileiro(totais.totalAnualReal)}</div>
               </div>
             </div>
           </div>
