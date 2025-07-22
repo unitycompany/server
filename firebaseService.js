@@ -51,3 +51,56 @@ export const removeLogin = async (dbName, loginId) => {
         console.error("Erro ao remover login:", error);
     }
 };
+
+// =================== FUNÇÕES PARA ASSINATURAS ===================
+
+// Função para obter todas as assinaturas do banco de dados
+export const getAssinaturas = async (dbName) => {
+    try {
+        const db = getDatabase(dbName);
+        if (!db) return [];
+
+        const querySnapshot = await getDocs(collection(db, "assinaturas"));
+        return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    } catch (error) {
+        console.error("Erro ao buscar assinaturas:", error);
+        return [];
+    }
+};
+
+// Função para adicionar uma nova assinatura
+export const addAssinatura = async (dbName, assinaturaData) => {
+    try {
+        const db = getDatabase(dbName);
+        if (!db) return;
+
+        await addDoc(collection(db, "assinaturas"), assinaturaData);
+    } catch (error) {
+        console.error("Erro ao adicionar assinatura:", error);
+    }
+};
+
+// Função para editar uma assinatura
+export const editAssinatura = async (dbName, assinaturaId, newData) => {
+    try {
+        const db = getDatabase(dbName);
+        if (!db) return;
+
+        const assinaturaRef = doc(db, "assinaturas", assinaturaId);
+        await updateDoc(assinaturaRef, newData);
+    } catch (error) {
+        console.error("Erro ao editar assinatura:", error);
+    }
+};
+
+// Função para remover uma assinatura
+export const removeAssinatura = async (dbName, assinaturaId) => {
+    try {
+        const db = getDatabase(dbName);
+        if (!db) return;
+
+        await deleteDoc(doc(db, "assinaturas", assinaturaId));
+    } catch (error) {
+        console.error("Erro ao remover assinatura:", error);
+    }
+};

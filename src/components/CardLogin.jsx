@@ -240,6 +240,23 @@ const FixedBadge = styled.span`
   letter-spacing: 0.5px;
 `;
 
+const CursoBadge = styled.span`
+  position: absolute;
+  top: -10px;
+  right: -10px;
+  background: linear-gradient(45deg, #34b600, #2d9e00);
+  color: #fff;
+  font-size: 8px;
+  font-weight: bold;
+  padding: 2px 5px;
+  border-radius: 3px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+  border: 1px solid #FFF;
+  z-index: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+`;
+
 const CardLogin = ({
   nomeSite,
   login,
@@ -311,6 +328,9 @@ const CardLogin = ({
     <Card cursoLogin={cursoLogin} cardFixo={cardFixo}>
       {/* Badge especial para cards fixos */}
       {cardFixo && <FixedBadge>FIXO</FixedBadge>}
+      
+      {/* Badge especial para cards de curso */}
+      {cursoLogin && !cardFixo && <CursoBadge>CURSO</CursoBadge>}
 
       <CardTitle>
         <h1>{nomeSite}</h1>
@@ -331,13 +351,6 @@ const CardLogin = ({
         <Empresa>
           <img src={companyLogos[empresa]} alt={empresa} title={empresa} />
         </Empresa>
-      )}
-
-      {/* Exibe o distintivo "FIXO" se cardFixo for true */}
-      {cardFixo && (
-        <FixedBadge>
-          Fixo
-        </FixedBadge>
       )}
 
       <label>

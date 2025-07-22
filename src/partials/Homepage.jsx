@@ -12,6 +12,9 @@ import { IoSettingsOutline } from "react-icons/io5";
 import PousadaLeAnge from "../pages/BC/pousadaleange";
 import FastHomes from "../pages/BC/fasthomes";
 import NovaMetalica from "../pages/BC/novametalica";
+import { MdOutlineAttachMoney } from "react-icons/md";
+import Assinaturas from "../pages/Assinaturas";
+
 
 const Content = styled.div`
   max-height: 100vh;
@@ -214,6 +217,14 @@ const menuOptions = [
       <FaUser />
     ),
     component: <AcessoLogins />
+  },
+
+  { 
+    title: "Gerenciamento de assinaturas", 
+    icon: (
+      <MdOutlineAttachMoney />
+    ),
+    component: <Assinaturas />
   },
 
   // { 

@@ -36,7 +36,8 @@
     "react-toastify": "^11.0.5",
     "styled-components": "^6.1.16",
     "suneditor": "^2.47.5",
-    "suneditor-react": "^3.6.1"
+    "suneditor-react": "^3.6.1",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "@eslint/js": "^9.21.0",
