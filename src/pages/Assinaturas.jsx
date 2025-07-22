@@ -1116,6 +1116,23 @@ const Assinaturas = () => {
     };
   };
 
+  // Função para obter valor numérico para planilha (sem formatação)
+  const obterValorNumericoParaPlanilha = (assinatura) => {
+    if (!assinatura) return 0;
+    
+    let valor = 0;
+    
+    if (assinatura.valorRelativo && assinatura.valorMin && assinatura.valorMax) {
+      // Para valores relativos, usa a média
+      valor = (parseFloat(assinatura.valorMin) + parseFloat(assinatura.valorMax)) / 2;
+    } else if (assinatura.mensalidade && assinatura.mensalidade !== "") {
+      valor = parseFloat(assinatura.mensalidade);
+    }
+    
+    // Retorna o valor como está (mensal ou anual)
+    return isNaN(valor) ? 0 : valor;
+  };
+
   // Função para exportar para Excel (.xlsx)
   const exportarParaExcel = () => {
     // Preparar informações dos filtros aplicados
@@ -1172,7 +1189,7 @@ const Assinaturas = () => {
     const dados = filteredAssinaturas.map(assinatura => [
       assinatura.nome || "",
       assinatura.empresa || "",
-      formatarValor(assinatura),
+      obterValorNumericoParaPlanilha(assinatura), // Apenas número
       assinatura.status || "",
       assinatura.acesso || "",
       assinatura.tipoPagamento || ""
@@ -1194,11 +1211,11 @@ const Assinaturas = () => {
     // Adicionar título do resumo
     XLSX.utils.sheet_add_aoa(ws, [["RESUMO FINANCEIRO"]], { origin: `A${resumoInicio}` });
     
-    // Adicionar dados do resumo (apenas em reais)
+    // Adicionar dados do resumo (apenas números)
     const resumoData = [
       ["Assinaturas Ativas", totais.quantidadeAtivos],
-      ["Total Mensal (R$)", `R$ ${formatarValorBrasileiro(totais.totalMensalReal)}`],
-      ["Total Anual (R$)", `R$ ${formatarValorBrasileiro(totais.totalAnualReal)}`]
+      ["Total Mensal (R$)", totais.totalMensalReal],
+      ["Total Anual (R$)", totais.totalAnualReal]
     ];
     
     XLSX.utils.sheet_add_aoa(ws, resumoData, { origin: `A${resumoInicio + 1}` });
