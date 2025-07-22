@@ -3,7 +3,7 @@ import styled from "styled-components";
 import Modal from "react-modal";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import { FaSearch, FaEdit, FaTrash, FaPlus, FaFileExcel } from "react-icons/fa";
+import { FaSearch, FaEdit, FaTrash, FaPlus, FaFileExcel, FaChevronDown, FaChevronUp } from "react-icons/fa";
 import { getAssinaturas, addAssinatura, editAssinatura, removeAssinatura } from "./../../firebaseService";
 import * as XLSX from 'xlsx';
 
@@ -580,9 +580,10 @@ const ModalExcluir = styled.div`
 const ResumoFinanceiro = styled.div`
   width: 100%;
   margin: 20px 0;
-  padding: 20px;
+  padding: 20px 20px 0 20px;
   border: 2px solid #000;
   background-color: #f8f9fa;
+  transition: all 0.3s ease;
 
   h3 {
     margin: 0 0 15px 0;
@@ -594,12 +595,61 @@ const ResumoFinanceiro = styled.div`
     display: flex;
     justify-content: space-between;
     align-items: center;
+    cursor: pointer;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #00000020;
+    
+    .title-content {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex: 1;
+      
+      .toggle-button {
+        background: none;
+        border: none;
+        color: #000;
+        font-size: 14px;
+        cursor: pointer;
+        padding: 5px;
+        border-radius: 3px;
+        transition: all 0.2s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        
+        &:hover {
+          background-color: #00000010;
+          color: #007bff;
+        }
+      }
+    }
+  }
+
+  .resumo-content {
+    overflow: hidden;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    padding-bottom: 20px;
+    
+    &.collapsed {
+      max-height: 0;
+      padding-bottom: 0;
+      opacity: 0;
+      transform: translateY(-10px);
+    }
+    
+    &.expanded {
+      max-height: 500px;
+      opacity: 1;
+      transform: translateY(0);
+    }
   }
 
   .resumo-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
     gap: 15px;
+    margin-top: 15px;
   }
 
   .resumo-item {
@@ -607,6 +657,12 @@ const ResumoFinanceiro = styled.div`
     padding: 15px;
     border: 1px solid #000;
     border-radius: 0;
+    transition: all 0.2s ease;
+    
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
 
     .label {
       font-size: 12px;
@@ -669,6 +725,12 @@ const Assinaturas = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [empresaFilter, setEmpresaFilter] = useState("");
+  
+  // Estado para controlar expansão do resumo financeiro
+  const [resumoExpanded, setResumoExpanded] = useState(true);
+  
+  // Estado para cotação do dólar
+  const [cotacaoDolar, setCotacaoDolar] = useState(5.50); // Valor base
 
   // Estado da nova assinatura
   const [newAssinatura, setNewAssinatura] = useState({
@@ -678,7 +740,7 @@ const Assinaturas = () => {
     acesso: "https://",
     empresa: "",
     tipoPagamento: "mensal", // mensal ou anual
-    moeda: "real", // real ou dolar
+    moedaInput: "real", // moeda para entrada (real ou dolar)
     valorRelativo: false,
     valorMin: "",
     valorMax: ""
@@ -693,26 +755,125 @@ const Assinaturas = () => {
     acesso: "https://",
     empresa: "",
     tipoPagamento: "mensal",
-    moeda: "real",
+    moedaInput: "real",
     valorRelativo: false,
     valorMin: "",
     valorMax: ""
   });
+
+  // Função para migrar valores em dólar para reais
+  const migrarValoresDolarParaReal = useCallback(async (assinaturas) => {
+    const assinaturasParaMigrar = [];
+    
+    assinaturas.forEach(assinatura => {
+      if (assinatura.moeda === "dolar") {
+        const assinaturaMigrada = {
+          ...assinatura,
+          moeda: "real" // Remove a referência ao dólar
+        };
+        
+        // Converte mensalidade se existir
+        if (assinatura.mensalidade && assinatura.mensalidade !== "") {
+          const valorEmReal = converterDolarParaReal(parseFloat(assinatura.mensalidade));
+          assinaturaMigrada.mensalidade = valorEmReal.toFixed(2);
+        }
+        
+        // Converte valores mínimo e máximo se existirem
+        if (assinatura.valorMin && assinatura.valorMin !== "") {
+          const valorMinEmReal = converterDolarParaReal(parseFloat(assinatura.valorMin));
+          assinaturaMigrada.valorMin = valorMinEmReal.toFixed(2);
+        }
+        
+        if (assinatura.valorMax && assinatura.valorMax !== "") {
+          const valorMaxEmReal = converterDolarParaReal(parseFloat(assinatura.valorMax));
+          assinaturaMigrada.valorMax = valorMaxEmReal.toFixed(2);
+        }
+        
+        assinaturasParaMigrar.push(assinaturaMigrada);
+      }
+    });
+    
+    // Atualiza as assinaturas que precisam ser migradas
+    for (const assinatura of assinaturasParaMigrar) {
+      try {
+        await editAssinatura(dbName, assinatura.id, assinatura);
+        console.log(`Assinatura ${assinatura.nome} migrada de dólar para real`);
+      } catch (error) {
+        console.error(`Erro ao migrar assinatura ${assinatura.nome}:`, error);
+      }
+    }
+    
+    if (assinaturasParaMigrar.length > 0) {
+      toast.success(`${assinaturasParaMigrar.length} assinaturas foram convertidas de dólar para real automaticamente!`);
+      return true; // Indica que houve migração
+    }
+    
+    return false; // Nenhuma migração necessária
+  }, [cotacaoDolar]);
 
   // Funções CRUD para Assinaturas (importadas do firebaseService)
   const fetchAssinaturas = useCallback(async () => {
     try {
       const data = await getAssinaturas(dbName);
       // Verificação de segurança para garantir que data seja um array
-      setAssinaturas(Array.isArray(data) ? data : []);
+      const assinaturasArray = Array.isArray(data) ? data : [];
+      
+      // Verificar se há assinaturas em dólar que precisam ser migradas
+      const houveMigracao = await migrarValoresDolarParaReal(assinaturasArray);
+      
+      // Se houve migração, buscar os dados atualizados
+      if (houveMigracao) {
+        const dadosAtualizados = await getAssinaturas(dbName);
+        setAssinaturas(Array.isArray(dadosAtualizados) ? dadosAtualizados : []);
+      } else {
+        setAssinaturas(assinaturasArray);
+      }
     } catch (error) {
       console.error("Erro ao buscar assinaturas:", error);
       setAssinaturas([]);
     }
+  }, [migrarValoresDolarParaReal]);
+
+  // Função para buscar cotação do dólar uma vez por dia
+  const buscarCotacaoDolar = useCallback(async () => {
+    const hoje = new Date().toDateString();
+    const cotacaoSalva = localStorage.getItem('cotacaoDolar');
+    const dataUltimaAtualizacao = localStorage.getItem('dataCotacao');
+    
+    if (cotacaoSalva && dataUltimaAtualizacao === hoje) {
+      setCotacaoDolar(parseFloat(cotacaoSalva));
+      return;
+    }
+
+    try {
+      const response = await fetch('https://api.exchangerate-api.com/v4/latest/USD');
+      const data = await response.json();
+      const cotacao = data.rates.BRL;
+      
+      if (cotacao) {
+        setCotacaoDolar(cotacao);
+        localStorage.setItem('cotacaoDolar', cotacao.toString());
+        localStorage.setItem('dataCotacao', hoje);
+      }
+    } catch (error) {
+      console.warn('Erro ao buscar cotação do dólar, usando valor base:', error);
+      // Mantém o valor base de 5.50 se não conseguir buscar
+    }
   }, []);
 
-  // Função para formatar valores monetários automaticamente
-  const formatarValorInput = (valor, moeda = "real") => {
+  useEffect(() => {
+    buscarCotacaoDolar();
+    fetchAssinaturas();
+  }, [buscarCotacaoDolar, fetchAssinaturas, reload]);
+
+  // Função para converter dólar para real
+  const converterDolarParaReal = (valorDolar) => {
+    if (!valorDolar || isNaN(parseFloat(valorDolar))) return 0;
+    return parseFloat(valorDolar) * cotacaoDolar;
+  };
+
+  // Função para formatar valores monetários automaticamente (apenas em reais)
+  const formatarValorInput = (valor, moedaInput = "real") => {
     if (!valor) return "";
     
     // Remove tudo que não é número
@@ -723,42 +884,45 @@ const Assinaturas = () => {
     // Converte para centavos
     const numeroEmCentavos = parseInt(numeroLimpo);
     
-    // Converte de volta para reais/dólares
+    // Converte de volta para reais/dólares (para exibição)
     const valorFormatado = (numeroEmCentavos / 100).toFixed(2);
-    
-    // Adiciona separadores de milhares e símbolo da moeda
-    const simbolo = moeda === "dolar" ? "$ " : "R$ ";
     
     // Formatar com separador de milhares
     const partes = valorFormatado.split(".");
     const inteiro = partes[0].replace(/\B(?=(\d{3})+(?!\d))/g, ".");
     const decimal = partes[1];
     
+    // Sempre exibe com símbolo da moeda de entrada para que o usuário veja
+    const simbolo = moedaInput === "dolar" ? "$ " : "R$ ";
+    
     return simbolo + inteiro + "," + decimal;
   };
 
-  // Função para extrair valor numérico da máscara
-  const extrairValorNumerico = (valorMascarado) => {
+  // Função para extrair valor numérico da máscara e converter se necessário
+  const extrairValorNumerico = (valorMascarado, moedaOriginal = "real") => {
     if (!valorMascarado) return "";
     // Remove símbolos e converte vírgula para ponto
     const numero = valorMascarado
-      .replace(/[R$\s\.]/g, "")
+      .replace(/[R$\s.]/g, "")
       .replace(",", ".");
+    
+    const valorNumerico = parseFloat(numero);
+    
+    // Se o valor foi digitado em dólar, converte para real
+    if (moedaOriginal === "dolar" && !isNaN(valorNumerico)) {
+      return converterDolarParaReal(valorNumerico).toFixed(2);
+    }
     
     return numero;
   };
 
-  // Função para validar e formatar valor antes de salvar
-  const validarValor = (valorMascarado) => {
+  // Função para validar e formatar valor antes de salvar (sempre em reais)
+  const validarValor = (valorMascarado, moedaOriginal = "real") => {
     if (!valorMascarado) return "";
-    const numeroLimpo = extrairValorNumerico(valorMascarado);
+    const numeroLimpo = extrairValorNumerico(valorMascarado, moedaOriginal);
     const numeroFloat = parseFloat(numeroLimpo);
     return isNaN(numeroFloat) ? "" : numeroFloat.toFixed(2);
   };
-
-  useEffect(() => {
-    fetchAssinaturas();
-  }, [fetchAssinaturas, reload]);
 
   // Filtrando as assinaturas
   const filteredAssinaturas = (Array.isArray(assinaturas) ? assinaturas : []).filter((assinatura) => {
@@ -788,13 +952,16 @@ const Assinaturas = () => {
       return;
     }
 
-    // Formatar valores antes de salvar
+    // Formatar valores antes de salvar (todos em reais após conversão)
     const assinaturaFormatada = {
       ...newAssinatura,
-      mensalidade: validarValor(newAssinatura.mensalidade),
-      valorMin: validarValor(newAssinatura.valorMin),
-      valorMax: validarValor(newAssinatura.valorMax)
+      mensalidade: validarValor(newAssinatura.mensalidade, newAssinatura.moedaInput),
+      valorMin: validarValor(newAssinatura.valorMin, newAssinatura.moedaInput),
+      valorMax: validarValor(newAssinatura.valorMax, newAssinatura.moedaInput)
     };
+
+    // Remove o campo moedaInput antes de salvar (não precisamos salvar isso)
+    delete assinaturaFormatada.moedaInput;
 
     await addAssinatura(dbName, assinaturaFormatada);
     setNewAssinatura({
@@ -804,7 +971,7 @@ const Assinaturas = () => {
       acesso: "https://",
       empresa: "",
       tipoPagamento: "mensal",
-      moeda: "real",
+      moedaInput: "real",
       valorRelativo: false,
       valorMin: "",
       valorMax: ""
@@ -824,13 +991,13 @@ const Assinaturas = () => {
   };
 
   const openEditModal = (assinatura) => {
-    // Formatar valores existentes para exibição
+    // Formatar valores existentes para exibição (todos em reais)
     const mensalidadeFormatada = assinatura.mensalidade ? 
-      formatarValorInput(assinatura.mensalidade.toString(), assinatura.moeda || "real") : "";
+      formatarValorInput(assinatura.mensalidade.toString()) : "";
     const valorMinFormatado = assinatura.valorMin ? 
-      formatarValorInput(assinatura.valorMin.toString(), assinatura.moeda || "real") : "";
+      formatarValorInput(assinatura.valorMin.toString()) : "";
     const valorMaxFormatado = assinatura.valorMax ? 
-      formatarValorInput(assinatura.valorMax.toString(), assinatura.moeda || "real") : "";
+      formatarValorInput(assinatura.valorMax.toString()) : "";
 
     setEditAssinaturaData({
       id: assinatura.id,
@@ -840,7 +1007,7 @@ const Assinaturas = () => {
       acesso: assinatura.acesso || "https://",
       empresa: assinatura.empresa || "",
       tipoPagamento: assinatura.tipoPagamento || "mensal",
-      moeda: assinatura.moeda || "real",
+      moedaInput: "real", // Sempre real para edição, já que os valores já estão em reais
       valorRelativo: assinatura.valorRelativo || false,
       valorMin: valorMinFormatado,
       valorMax: valorMaxFormatado
@@ -861,13 +1028,16 @@ const Assinaturas = () => {
       return;
     }
 
-    // Formatar valores antes de salvar
+    // Formatar valores antes de salvar (conversão se necessário)
     const dataFormatada = {
       ...dataToUpdate,
-      mensalidade: validarValor(dataToUpdate.mensalidade),
-      valorMin: validarValor(dataToUpdate.valorMin),
-      valorMax: validarValor(dataToUpdate.valorMax)
+      mensalidade: validarValor(dataToUpdate.mensalidade, dataToUpdate.moedaInput),
+      valorMin: validarValor(dataToUpdate.valorMin, dataToUpdate.moedaInput),
+      valorMax: validarValor(dataToUpdate.valorMax, dataToUpdate.moedaInput)
     };
+
+    // Remove o campo moedaInput antes de salvar
+    delete dataFormatada.moedaInput;
 
     await editAssinatura(dbName, id, dataFormatada);
     toast.success("Assinatura atualizada com sucesso!");
@@ -879,7 +1049,7 @@ const Assinaturas = () => {
     // Verificações de segurança
     if (!assinatura) return "Não informado";
     
-    const simboloMoeda = assinatura.moeda === "dolar" ? "$" : "R$";
+    const simboloMoeda = "R$"; // Sempre em reais agora
     const sufixo = assinatura.tipoPagamento === "anual" ? "/ano" : "/mês";
 
     if (assinatura.valorRelativo && assinatura.valorMin && assinatura.valorMax) {
@@ -914,28 +1084,21 @@ const Assinaturas = () => {
     return isNaN(valor) ? 0 : valor;
   };
 
-  // Função para calcular totais
+  // Função para calcular totais (apenas em reais agora)
   const calcularTotais = () => {
     const assinaturasAtivas = filteredAssinaturas.filter(a => a.status === "ativo");
     
     let totalMensalReal = 0;
-    let totalMensalDolar = 0;
     
     assinaturasAtivas.forEach(assinatura => {
       const valor = calcularValorNumerico(assinatura);
-      if (assinatura.moeda === "dolar") {
-        totalMensalDolar += valor;
-      } else {
-        totalMensalReal += valor;
-      }
+      totalMensalReal += valor;
     });
     
     return {
       quantidadeAtivos: assinaturasAtivas.length,
       totalMensalReal,
-      totalMensalDolar,
-      totalAnualReal: totalMensalReal * 12,
-      totalAnualDolar: totalMensalDolar * 12
+      totalAnualReal: totalMensalReal * 12
     };
   };
 
@@ -986,11 +1149,10 @@ const Assinaturas = () => {
     const headers = [
       "Nome",
       "Empresa", 
-      "Mensalidade",
+      "Valor",
       "Status",
       "Acesso",
-      "Tipo de Pagamento",
-      "Moeda"
+      "Tipo de Pagamento"
     ];
     
     const dados = filteredAssinaturas.map(assinatura => [
@@ -999,8 +1161,7 @@ const Assinaturas = () => {
       formatarValor(assinatura),
       assinatura.status || "",
       assinatura.acesso || "",
-      assinatura.tipoPagamento || "",
-      assinatura.moeda || ""
+      assinatura.tipoPagamento || ""
     ]);
     
     // Combinar filtros + headers + dados
@@ -1019,13 +1180,11 @@ const Assinaturas = () => {
     // Adicionar título do resumo
     XLSX.utils.sheet_add_aoa(ws, [["RESUMO FINANCEIRO"]], { origin: `A${resumoInicio}` });
     
-    // Adicionar dados do resumo
+    // Adicionar dados do resumo (apenas em reais)
     const resumoData = [
-      ["Softwares Ativos", totais.quantidadeAtivos],
+      ["Assinaturas Ativas", totais.quantidadeAtivos],
       ["Total Mensal (R$)", `R$ ${totais.totalMensalReal.toFixed(2)}`],
-      ["Total Anual (R$)", `R$ ${totais.totalAnualReal.toFixed(2)}`],
-      ["Total Mensal (US$)", `$ ${totais.totalMensalDolar.toFixed(2)}`],
-      ["Total Anual (US$)", `$ ${totais.totalAnualDolar.toFixed(2)}`]
+      ["Total Anual (R$)", `R$ ${totais.totalAnualReal.toFixed(2)}`]
     ];
     
     XLSX.utils.sheet_add_aoa(ws, resumoData, { origin: `A${resumoInicio + 1}` });
@@ -1064,15 +1223,14 @@ const Assinaturas = () => {
       };
     }
     
-    // Ajustar largura das colunas
+    // Ajustar largura das colunas (sem coluna de moeda)
     const colWidths = [
       { wch: 30 }, // Nome / Filtros
       { wch: 25 }, // Empresa / Valores dos filtros
       { wch: 18 }, // Mensalidade
       { wch: 12 }, // Status
       { wch: 35 }, // Acesso
-      { wch: 18 }, // Tipo Pagamento
-      { wch: 12 }  // Moeda
+      { wch: 18 }  // Tipo Pagamento
     ];
     ws['!cols'] = colWidths;
     
@@ -1141,44 +1299,42 @@ const Assinaturas = () => {
         </Top>
 
         <ResumoFinanceiro>
-          <h3>
-            Resumo Financeiro
+          <h3 onClick={() => setResumoExpanded(!resumoExpanded)}>
+            <div className="title-content">
+              <button 
+                className="toggle-button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setResumoExpanded(!resumoExpanded);
+                }}
+              >
+                {resumoExpanded ? <FaChevronUp /> : <FaChevronDown />}
+              </button>
+              <span>Resumo Financeiro</span>
+            </div>
             <ExportButton onClick={exportarParaExcel}>
               <FaFileExcel />
               Exportar Excel
             </ExportButton>
           </h3>
-          <div className="resumo-grid">
-            <div className="resumo-item">
-              <div className="label">Softwares Ativos</div>
-              <div className="quantidade">{totais.quantidadeAtivos} assinaturas</div>
+          
+          <div className={`resumo-content ${resumoExpanded ? 'expanded' : 'collapsed'}`}>
+            <div className="resumo-grid">
+              <div className="resumo-item">
+                <div className="label">Assinaturas Ativas</div>
+                <div className="quantidade">{totais.quantidadeAtivos} assinaturas</div>
+              </div>
+              
+              <div className="resumo-item">
+                <div className="label">Custo Mensal Total</div>
+                <div className="valor">R$ {totais.totalMensalReal.toFixed(2)}</div>
+              </div>
+              
+              <div className="resumo-item">
+                <div className="label">Custo Anual Total</div>
+                <div className="valor">R$ {totais.totalAnualReal.toFixed(2)}</div>
+              </div>
             </div>
-            
-            {totais.totalMensalReal > 0 && (
-              <>
-                <div className="resumo-item">
-                  <div className="label">Custo Mensal (R$)</div>
-                  <div className="valor">R$ {totais.totalMensalReal.toFixed(2)}</div>
-                </div>
-                <div className="resumo-item">
-                  <div className="label">Custo Anual (R$)</div>
-                  <div className="valor">R$ {totais.totalAnualReal.toFixed(2)}</div>
-                </div>
-              </>
-            )}
-            
-            {totais.totalMensalDolar > 0 && (
-              <>
-                <div className="resumo-item">
-                  <div className="label">Custo Mensal (US$)</div>
-                  <div className="valor">$ {totais.totalMensalDolar.toFixed(2)}</div>
-                </div>
-                <div className="resumo-item">
-                  <div className="label">Custo Anual (US$)</div>
-                  <div className="valor">$ {totais.totalAnualDolar.toFixed(2)}</div>
-                </div>
-              </>
-            )}
           </div>
         </ResumoFinanceiro>
 
@@ -1188,7 +1344,7 @@ const Assinaturas = () => {
               <tr>
                 <th>Nome</th>
                 <th>Empresa</th>
-                <th>Mensalidade</th>
+                <th>Valor</th>
                 <th>Status</th>
                 <th>Acesso</th>
                 <th>Ações</th>
@@ -1365,9 +1521,9 @@ const Assinaturas = () => {
                 </div>
 
                 <div className="form-group">
-                  <label>Moeda</label>
+                  <label>Moeda de Entrada</label>
                   <select
-                    value={newAssinatura.moeda}
+                    value={newAssinatura.moedaInput}
                     onChange={(e) => {
                       const novaMoeda = e.target.value;
                       // Reformatar valores existentes para a nova moeda
@@ -1380,7 +1536,7 @@ const Assinaturas = () => {
                       
                       setNewAssinatura({ 
                         ...newAssinatura, 
-                        moeda: novaMoeda,
+                        moedaInput: novaMoeda,
                         mensalidade: mensalidadeAtualizada,
                         valorMin: valorMinAtualizado,
                         valorMax: valorMaxAtualizado
@@ -1390,6 +1546,12 @@ const Assinaturas = () => {
                     <option value="real">Real (R$)</option>
                     <option value="dolar">Dólar ($)</option>
                   </select>
+                  <div className="input-help">
+                    {newAssinatura.moedaInput === "dolar" 
+                      ? `Valores em dólar serão convertidos para reais (cotação: R$ ${cotacaoDolar.toFixed(2)})`
+                      : "Valores serão salvos em reais"
+                    }
+                  </div>
                 </div>
               </div>
 
@@ -1414,10 +1576,10 @@ const Assinaturas = () => {
                       type="text"
                       value={newAssinatura.valorMin}
                       onChange={(e) => {
-                        const valorFormatado = formatarValorInput(e.target.value, newAssinatura.moeda);
+                        const valorFormatado = formatarValorInput(e.target.value, newAssinatura.moedaInput);
                         setNewAssinatura({ ...newAssinatura, valorMin: valorFormatado });
                       }}
-                      placeholder={newAssinatura.moeda === "dolar" ? "$ 0,00" : "R$ 0,00"}
+                      placeholder={newAssinatura.moedaInput === "dolar" ? "$ 0,00" : "R$ 0,00"}
                     />
                   </div>
                   <div className="form-group">
@@ -1426,10 +1588,10 @@ const Assinaturas = () => {
                       type="text"
                       value={newAssinatura.valorMax}
                       onChange={(e) => {
-                        const valorFormatado = formatarValorInput(e.target.value, newAssinatura.moeda);
+                        const valorFormatado = formatarValorInput(e.target.value, newAssinatura.moedaInput);
                         setNewAssinatura({ ...newAssinatura, valorMax: valorFormatado });
                       }}
-                      placeholder={newAssinatura.moeda === "dolar" ? "$ 0,00" : "R$ 0,00"}
+                      placeholder={newAssinatura.moedaInput === "dolar" ? "$ 0,00" : "R$ 0,00"}
                     />
                   </div>
                 </div>
@@ -1440,10 +1602,10 @@ const Assinaturas = () => {
                     type="text"
                     value={newAssinatura.mensalidade}
                     onChange={(e) => {
-                      const valorFormatado = formatarValorInput(e.target.value, newAssinatura.moeda);
+                      const valorFormatado = formatarValorInput(e.target.value, newAssinatura.moedaInput);
                       setNewAssinatura({ ...newAssinatura, mensalidade: valorFormatado });
                     }}
-                    placeholder={newAssinatura.moeda === "dolar" ? "$ 0,00" : "R$ 0,00"}
+                    placeholder={newAssinatura.moedaInput === "dolar" ? "$ 0,00" : "R$ 0,00"}
                   />
                   <div className="input-help">Valor fixo cobrado por período</div>
                 </div>
@@ -1574,9 +1736,9 @@ const Assinaturas = () => {
                 </div>
 
                 <div className="form-group">
-                  <label>Moeda</label>
+                  <label>Moeda de Entrada</label>
                   <select
-                    value={editAssinaturaData.moeda}
+                    value={editAssinaturaData.moedaInput}
                     onChange={(e) => {
                       const novaMoeda = e.target.value;
                       // Reformatar valores existentes para a nova moeda
@@ -1589,7 +1751,7 @@ const Assinaturas = () => {
                       
                       setEditAssinaturaData({ 
                         ...editAssinaturaData, 
-                        moeda: novaMoeda,
+                        moedaInput: novaMoeda,
                         mensalidade: mensalidadeAtualizada,
                         valorMin: valorMinAtualizado,
                         valorMax: valorMaxAtualizado
@@ -1599,6 +1761,12 @@ const Assinaturas = () => {
                     <option value="real">Real (R$)</option>
                     <option value="dolar">Dólar ($)</option>
                   </select>
+                  <div className="input-help">
+                    {editAssinaturaData.moedaInput === "dolar" 
+                      ? `Valores em dólar serão convertidos para reais (cotação: R$ ${cotacaoDolar.toFixed(2)})`
+                      : "Valores serão salvos em reais"
+                    }
+                  </div>
                 </div>
               </div>
 
@@ -1623,10 +1791,10 @@ const Assinaturas = () => {
                       type="text"
                       value={editAssinaturaData.valorMin}
                       onChange={(e) => {
-                        const valorFormatado = formatarValorInput(e.target.value, editAssinaturaData.moeda);
+                        const valorFormatado = formatarValorInput(e.target.value, editAssinaturaData.moedaInput);
                         setEditAssinaturaData({ ...editAssinaturaData, valorMin: valorFormatado });
                       }}
-                      placeholder={editAssinaturaData.moeda === "dolar" ? "$ 0,00" : "R$ 0,00"}
+                      placeholder={editAssinaturaData.moedaInput === "dolar" ? "$ 0,00" : "R$ 0,00"}
                     />
                   </div>
                   <div className="form-group">
@@ -1635,10 +1803,10 @@ const Assinaturas = () => {
                       type="text"
                       value={editAssinaturaData.valorMax}
                       onChange={(e) => {
-                        const valorFormatado = formatarValorInput(e.target.value, editAssinaturaData.moeda);
+                        const valorFormatado = formatarValorInput(e.target.value, editAssinaturaData.moedaInput);
                         setEditAssinaturaData({ ...editAssinaturaData, valorMax: valorFormatado });
                       }}
-                      placeholder={editAssinaturaData.moeda === "dolar" ? "$ 0,00" : "R$ 0,00"}
+                      placeholder={editAssinaturaData.moedaInput === "dolar" ? "$ 0,00" : "R$ 0,00"}
                     />
                   </div>
                 </div>
@@ -1649,10 +1817,10 @@ const Assinaturas = () => {
                     type="text"
                     value={editAssinaturaData.mensalidade}
                     onChange={(e) => {
-                      const valorFormatado = formatarValorInput(e.target.value, editAssinaturaData.moeda);
+                      const valorFormatado = formatarValorInput(e.target.value, editAssinaturaData.moedaInput);
                       setEditAssinaturaData({ ...editAssinaturaData, mensalidade: valorFormatado });
                     }}
-                    placeholder={editAssinaturaData.moeda === "dolar" ? "$ 0,00" : "R$ 0,00"}
+                    placeholder={editAssinaturaData.moedaInput === "dolar" ? "$ 0,00" : "R$ 0,00"}
                   />
                   <div className="input-help">Valor fixo cobrado por período</div>
                 </div>
