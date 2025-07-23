@@ -729,12 +729,16 @@ const Assinaturas = () => {
   // Estado para controlar expansão do resumo financeiro
   const [resumoExpanded, setResumoExpanded] = useState(true);
   
+  // Estado para controlar descrições expandidas na interface
+  const [descricaoExpandida, setDescricaoExpandida] = useState({});
+  
   // Estado para cotação do dólar
   const [cotacaoDolar, setCotacaoDolar] = useState(5.50); // Valor base
 
   // Estado da nova assinatura
   const [newAssinatura, setNewAssinatura] = useState({
     nome: "",
+    descricao: "",
     mensalidade: "",
     status: "ativo",
     acesso: "https://",
@@ -750,6 +754,7 @@ const Assinaturas = () => {
   const [editAssinaturaData, setEditAssinaturaData] = useState({
     id: "",
     nome: "",
+    descricao: "",
     mensalidade: "",
     status: "ativo",
     acesso: "https://",
@@ -966,6 +971,7 @@ const Assinaturas = () => {
     await addAssinatura(dbName, assinaturaFormatada);
     setNewAssinatura({
       nome: "",
+      descricao: "",
       mensalidade: "",
       status: "ativo",
       acesso: "https://",
@@ -1002,6 +1008,7 @@ const Assinaturas = () => {
     setEditAssinaturaData({
       id: assinatura.id,
       nome: assinatura.nome || "",
+      descricao: assinatura.descricao || "",
       mensalidade: mensalidadeFormatada,
       status: assinatura.status || "ativo",
       acesso: assinatura.acesso || "https://",
@@ -1133,6 +1140,72 @@ const Assinaturas = () => {
     return isNaN(valor) ? 0 : valor;
   };
 
+  // Função para alternar descrição expandida
+  const toggleDescricao = (assinaturaId) => {
+    setDescricaoExpandida(prev => ({
+      ...prev,
+      [assinaturaId]: !prev[assinaturaId]
+    }));
+  };
+
+  // Função para renderizar descrição com "ver mais"
+  const renderDescricao = (assinatura) => {
+    if (!assinatura.descricao || assinatura.descricao.trim() === "") {
+      return <span style={{ color: "#999", fontStyle: "italic" }}>Sem descrição</span>;
+    }
+    
+    const isExpanded = descricaoExpandida[assinatura.id];
+    const maxLength = 80; // Máximo de caracteres antes do "ver mais"
+    
+    if (assinatura.descricao.length <= maxLength) {
+      return <span>{assinatura.descricao}</span>;
+    }
+    
+    if (isExpanded) {
+      return (
+        <div>
+          <span>{assinatura.descricao}</span>
+          <button 
+            className="btn-ver-mais"
+            onClick={() => toggleDescricao(assinatura.id)}
+            style={{ 
+              marginLeft: '8px', 
+              color: '#007bff', 
+              border: 'none', 
+              background: 'none', 
+              cursor: 'pointer', 
+              fontSize: '0.85em',
+              textDecoration: 'underline'
+            }}
+          >
+            ver menos
+          </button>
+        </div>
+      );
+    }
+    
+    return (
+      <div>
+        <span>{assinatura.descricao.substring(0, maxLength)}...</span>
+        <button 
+          className="btn-ver-mais"
+          onClick={() => toggleDescricao(assinatura.id)}
+          style={{ 
+            marginLeft: '8px', 
+            color: '#007bff', 
+            border: 'none', 
+            background: 'none', 
+            cursor: 'pointer', 
+            fontSize: '0.85em',
+            textDecoration: 'underline'
+          }}
+        >
+          ver mais
+        </button>
+      </div>
+    );
+  };
+
   // Função para exportar para Excel (.xlsx)
   const exportarParaExcel = () => {
     // Preparar informações dos filtros aplicados
@@ -1179,6 +1252,7 @@ const Assinaturas = () => {
 
     const headers = [
       "Nome",
+      "Descrição",
       "Empresa", 
       "Valor",
       "Status",
@@ -1188,6 +1262,7 @@ const Assinaturas = () => {
     
     const dados = filteredAssinaturas.map(assinatura => [
       assinatura.nome || "",
+      assinatura.descricao || "", // Descrição completa na planilha
       assinatura.empresa || "",
       obterValorNumericoParaPlanilha(assinatura), // Apenas número
       assinatura.status || "",
@@ -1257,6 +1332,7 @@ const Assinaturas = () => {
     // Ajustar largura das colunas (sem coluna de moeda)
     const colWidths = [
       { wch: 30 }, // Nome / Filtros
+      { wch: 40 }, // Descrição
       { wch: 25 }, // Empresa / Valores dos filtros
       { wch: 18 }, // Mensalidade
       { wch: 12 }, // Status
@@ -1374,6 +1450,7 @@ const Assinaturas = () => {
             <thead>
               <tr>
                 <th>Nome</th>
+                <th>Descrição</th>
                 <th>Empresa</th>
                 <th>Valor</th>
                 <th>Status</th>
@@ -1387,6 +1464,7 @@ const Assinaturas = () => {
                   <td>
                     <strong>{assinatura.nome}</strong>
                   </td>
+                  <td className="empresa-cell">{renderDescricao(assinatura)}</td>
                   <td className="empresa-cell">{assinatura.empresa || "Não informado"}</td>
                   <td className="valor-cell">{formatarValor(assinatura)}</td>
                   <td>
@@ -1436,7 +1514,7 @@ const Assinaturas = () => {
               ))}
               {filteredAssinaturas.length === 0 && (
                 <tr>
-                  <td colSpan="6" style={{ textAlign: "center", padding: "30px", color: "#666", fontStyle: "italic" }}>
+                  <td colSpan="7" style={{ textAlign: "center", padding: "30px", color: "#666", fontStyle: "italic" }}>
                     Nenhuma assinatura encontrada
                   </td>
                 </tr>
@@ -1474,6 +1552,17 @@ const Assinaturas = () => {
                   placeholder="Ex: Netflix Premium, Office 365, Adobe Creative Cloud..."
                 />
                 <div className="input-help">Digite um nome descritivo para identificar a assinatura</div>
+              </div>
+
+              <div className="form-group full-width">
+                <label>Descrição</label>
+                <textarea
+                  value={newAssinatura.descricao}
+                  onChange={(e) => setNewAssinatura({ ...newAssinatura, descricao: e.target.value })}
+                  placeholder="Descreva brevemente o que esta assinatura oferece..."
+                  rows="3"
+                />
+                <div className="input-help">Descrição opcional sobre o serviço ou funcionalidades</div>
               </div>
 
               <div className="form-row">
@@ -1689,6 +1778,17 @@ const Assinaturas = () => {
                   placeholder="Ex: Netflix Premium, Office 365, Adobe Creative Cloud..."
                 />
                 <div className="input-help">Digite um nome descritivo para identificar a assinatura</div>
+              </div>
+
+              <div className="form-group full-width">
+                <label>Descrição</label>
+                <textarea
+                  value={editAssinaturaData.descricao}
+                  onChange={(e) => setEditAssinaturaData({ ...editAssinaturaData, descricao: e.target.value })}
+                  placeholder="Descreva brevemente o que esta assinatura oferece..."
+                  rows="3"
+                />
+                <div className="input-help">Descrição opcional sobre o serviço ou funcionalidades</div>
               </div>
 
               <div className="form-row">
