@@ -725,13 +725,13 @@ const Assinaturas = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [empresaFilter, setEmpresaFilter] = useState("");
-  
+
   // Estado para controlar expansão do resumo financeiro
   const [resumoExpanded, setResumoExpanded] = useState(true);
-  
+
   // Estado para controlar descrições expandidas na interface
   const [descricaoExpandida, setDescricaoExpandida] = useState({});
-  
+
   // Estado para cotação do dólar
   const [cotacaoDolar, setCotacaoDolar] = useState(5.50); // Valor base
 
@@ -747,7 +747,9 @@ const Assinaturas = () => {
     moedaInput: "real", // moeda para entrada (real ou dolar)
     valorRelativo: false,
     valorMin: "",
-    valorMax: ""
+    valorMax: "",
+    formaPagamento: "", // cartao, boleto, pix
+    ultimosDigitos: "" // apenas se cartao
   });
 
   // Estado de edição
@@ -763,41 +765,43 @@ const Assinaturas = () => {
     moedaInput: "real",
     valorRelativo: false,
     valorMin: "",
-    valorMax: ""
+    valorMax: "",
+    formaPagamento: "",
+    ultimosDigitos: ""
   });
 
   // Função para migrar valores em dólar para reais
   const migrarValoresDolarParaReal = useCallback(async (assinaturas) => {
     const assinaturasParaMigrar = [];
-    
+
     assinaturas.forEach(assinatura => {
       if (assinatura.moeda === "dolar") {
         const assinaturaMigrada = {
           ...assinatura,
           moeda: "real" // Remove a referência ao dólar
         };
-        
+
         // Converte mensalidade se existir
         if (assinatura.mensalidade && assinatura.mensalidade !== "") {
           const valorEmReal = converterDolarParaReal(parseFloat(assinatura.mensalidade));
           assinaturaMigrada.mensalidade = valorEmReal.toFixed(2);
         }
-        
+
         // Converte valores mínimo e máximo se existirem
         if (assinatura.valorMin && assinatura.valorMin !== "") {
           const valorMinEmReal = converterDolarParaReal(parseFloat(assinatura.valorMin));
           assinaturaMigrada.valorMin = valorMinEmReal.toFixed(2);
         }
-        
+
         if (assinatura.valorMax && assinatura.valorMax !== "") {
           const valorMaxEmReal = converterDolarParaReal(parseFloat(assinatura.valorMax));
           assinaturaMigrada.valorMax = valorMaxEmReal.toFixed(2);
         }
-        
+
         assinaturasParaMigrar.push(assinaturaMigrada);
       }
     });
-    
+
     // Atualiza as assinaturas que precisam ser migradas
     for (const assinatura of assinaturasParaMigrar) {
       try {
@@ -807,12 +811,12 @@ const Assinaturas = () => {
         console.error(`Erro ao migrar assinatura ${assinatura.nome}:`, error);
       }
     }
-    
+
     if (assinaturasParaMigrar.length > 0) {
       toast.success(`${assinaturasParaMigrar.length} assinaturas foram convertidas de dólar para real automaticamente!`);
       return true; // Indica que houve migração
     }
-    
+
     return false; // Nenhuma migração necessária
   }, [cotacaoDolar]);
 
@@ -822,10 +826,10 @@ const Assinaturas = () => {
       const data = await getAssinaturas(dbName);
       // Verificação de segurança para garantir que data seja um array
       const assinaturasArray = Array.isArray(data) ? data : [];
-      
+
       // Verificar se há assinaturas em dólar que precisam ser migradas
       const houveMigracao = await migrarValoresDolarParaReal(assinaturasArray);
-      
+
       // Se houve migração, buscar os dados atualizados
       if (houveMigracao) {
         const dadosAtualizados = await getAssinaturas(dbName);
@@ -844,7 +848,7 @@ const Assinaturas = () => {
     const hoje = new Date().toDateString();
     const cotacaoSalva = localStorage.getItem('cotacaoDolar');
     const dataUltimaAtualizacao = localStorage.getItem('dataCotacao');
-    
+
     if (cotacaoSalva && dataUltimaAtualizacao === hoje) {
       setCotacaoDolar(parseFloat(cotacaoSalva));
       return;
@@ -854,7 +858,7 @@ const Assinaturas = () => {
       const response = await fetch('https://api.exchangerate-api.com/v4/latest/USD');
       const data = await response.json();
       const cotacao = data.rates.BRL;
-      
+
       if (cotacao) {
         setCotacaoDolar(cotacao);
         localStorage.setItem('cotacaoDolar', cotacao.toString());
@@ -880,26 +884,26 @@ const Assinaturas = () => {
   // Função para formatar valores monetários automaticamente (apenas em reais)
   const formatarValorInput = (valor, moedaInput = "real") => {
     if (!valor) return "";
-    
+
     // Remove tudo que não é número
     const numeroLimpo = valor.toString().replace(/[^\d]/g, "");
-    
+
     if (!numeroLimpo) return "";
-    
+
     // Converte para centavos
     const numeroEmCentavos = parseInt(numeroLimpo);
-    
+
     // Converte de volta para reais/dólares (para exibição)
     const valorFormatado = (numeroEmCentavos / 100).toFixed(2);
-    
+
     // Formatar com separador de milhares
     const partes = valorFormatado.split(".");
     const inteiro = partes[0].replace(/\B(?=(\d{3})+(?!\d))/g, ".");
     const decimal = partes[1];
-    
+
     // Sempre exibe com símbolo da moeda de entrada para que o usuário veja
     const simbolo = moedaInput === "dolar" ? "$ " : "R$ ";
-    
+
     return simbolo + inteiro + "," + decimal;
   };
 
@@ -910,14 +914,14 @@ const Assinaturas = () => {
     const numero = valorMascarado
       .replace(/[R$\s.]/g, "")
       .replace(",", ".");
-    
+
     const valorNumerico = parseFloat(numero);
-    
+
     // Se o valor foi digitado em dólar, converte para real
     if (moedaOriginal === "dolar" && !isNaN(valorNumerico)) {
       return converterDolarParaReal(valorNumerico).toFixed(2);
     }
-    
+
     return numero;
   };
 
@@ -933,15 +937,15 @@ const Assinaturas = () => {
   const filteredAssinaturas = (Array.isArray(assinaturas) ? assinaturas : []).filter((assinatura) => {
     // Verificações de segurança para evitar erros
     if (!assinatura || typeof assinatura !== 'object') return false;
-    
+
     const nome = assinatura.nome || "";
     const status = assinatura.status || "";
     const empresa = assinatura.empresa || "";
-    
+
     const matchNome = nome.toLowerCase().includes(searchTerm.toLowerCase());
     const matchStatus = statusFilter ? status === statusFilter : true;
     const matchEmpresa = empresaFilter ? empresa === empresaFilter : true;
-    
+
     return matchNome && matchStatus && matchEmpresa;
   });
 
@@ -965,6 +969,17 @@ const Assinaturas = () => {
       valorMax: validarValor(newAssinatura.valorMax, newAssinatura.moedaInput)
     };
 
+    // Validação específica de forma de pagamento
+    if (assinaturaFormatada.formaPagamento === 'cartao') {
+      if (!assinaturaFormatada.ultimosDigitos || assinaturaFormatada.ultimosDigitos.length !== 4) {
+        toast.error("Informe os 4 últimos dígitos do cartão.");
+        return;
+      }
+    } else {
+      // Limpa dígitos se não for cartão
+      assinaturaFormatada.ultimosDigitos = "";
+    }
+
     // Remove o campo moedaInput antes de salvar (não precisamos salvar isso)
     delete assinaturaFormatada.moedaInput;
 
@@ -980,7 +995,9 @@ const Assinaturas = () => {
       moedaInput: "real",
       valorRelativo: false,
       valorMin: "",
-      valorMax: ""
+      valorMax: "",
+      formaPagamento: "",
+      ultimosDigitos: ""
     });
     setModalAddIsOpen(false);
     toast.success("Assinatura adicionada com sucesso!");
@@ -998,11 +1015,11 @@ const Assinaturas = () => {
 
   const openEditModal = (assinatura) => {
     // Formatar valores existentes para exibição (todos em reais)
-    const mensalidadeFormatada = assinatura.mensalidade ? 
+    const mensalidadeFormatada = assinatura.mensalidade ?
       formatarValorInput(assinatura.mensalidade.toString()) : "";
-    const valorMinFormatado = assinatura.valorMin ? 
+    const valorMinFormatado = assinatura.valorMin ?
       formatarValorInput(assinatura.valorMin.toString()) : "";
-    const valorMaxFormatado = assinatura.valorMax ? 
+    const valorMaxFormatado = assinatura.valorMax ?
       formatarValorInput(assinatura.valorMax.toString()) : "";
 
     setEditAssinaturaData({
@@ -1017,7 +1034,9 @@ const Assinaturas = () => {
       moedaInput: "real", // Sempre real para edição, já que os valores já estão em reais
       valorRelativo: assinatura.valorRelativo || false,
       valorMin: valorMinFormatado,
-      valorMax: valorMaxFormatado
+      valorMax: valorMaxFormatado,
+      formaPagamento: assinatura.formaPagamento || "",
+      ultimosDigitos: assinatura.ultimosDigitos || ""
     });
     setModalEditIsOpen(true);
   };
@@ -1043,6 +1062,15 @@ const Assinaturas = () => {
       valorMax: validarValor(dataToUpdate.valorMax, dataToUpdate.moedaInput)
     };
 
+    if (dataFormatada.formaPagamento === 'cartao') {
+      if (!dataFormatada.ultimosDigitos || dataFormatada.ultimosDigitos.length !== 4) {
+        toast.error("Informe os 4 últimos dígitos do cartão.");
+        return;
+      }
+    } else {
+      dataFormatada.ultimosDigitos = "";
+    }
+
     // Remove o campo moedaInput antes de salvar
     delete dataFormatada.moedaInput;
 
@@ -1055,7 +1083,7 @@ const Assinaturas = () => {
   // Função para formatar valores no padrão brasileiro
   const formatarValorBrasileiro = (valor) => {
     if (!valor || valor === "" || isNaN(parseFloat(valor))) return "0,00";
-    
+
     const numero = parseFloat(valor);
     return numero.toLocaleString('pt-BR', {
       minimumFractionDigits: 2,
@@ -1066,7 +1094,7 @@ const Assinaturas = () => {
   const formatarValor = (assinatura) => {
     // Verificações de segurança
     if (!assinatura) return "Não informado";
-    
+
     const simboloMoeda = "R$"; // Sempre em reais agora
     const sufixo = assinatura.tipoPagamento === "anual" ? "/ano" : "/mês";
 
@@ -1075,7 +1103,7 @@ const Assinaturas = () => {
       const valorMaxFormatado = formatarValorBrasileiro(assinatura.valorMax);
       return `${simboloMoeda} ${valorMinFormatado} - ${valorMaxFormatado} ${sufixo}`;
     }
-    
+
     if (assinatura.mensalidade && assinatura.mensalidade !== "") {
       const valorFormatado = formatarValorBrasileiro(assinatura.mensalidade);
       return `${simboloMoeda} ${valorFormatado} ${sufixo}`;
@@ -1087,35 +1115,35 @@ const Assinaturas = () => {
   // Função para calcular o valor numérico de uma assinatura
   const calcularValorNumerico = (assinatura) => {
     if (!assinatura) return 0;
-    
+
     let valor = 0;
-    
+
     if (assinatura.valorRelativo && assinatura.valorMin && assinatura.valorMax) {
       // Para valores relativos, usa a média
       valor = (parseFloat(assinatura.valorMin) + parseFloat(assinatura.valorMax)) / 2;
     } else if (assinatura.mensalidade && assinatura.mensalidade !== "") {
       valor = parseFloat(assinatura.mensalidade);
     }
-    
+
     // Converte anual para mensal para padronizar
     if (assinatura.tipoPagamento === "anual") {
       valor = valor / 12;
     }
-    
+
     return isNaN(valor) ? 0 : valor;
   };
 
   // Função para calcular totais (apenas em reais agora)
   const calcularTotais = () => {
     const assinaturasAtivas = filteredAssinaturas.filter(a => a.status === "ativo");
-    
+
     let totalMensalReal = 0;
-    
+
     assinaturasAtivas.forEach(assinatura => {
       const valor = calcularValorNumerico(assinatura);
       totalMensalReal += valor;
     });
-    
+
     return {
       quantidadeAtivos: assinaturasAtivas.length,
       totalMensalReal,
@@ -1126,16 +1154,16 @@ const Assinaturas = () => {
   // Função para obter valor numérico para planilha (sem formatação)
   const obterValorNumericoParaPlanilha = (assinatura) => {
     if (!assinatura) return 0;
-    
+
     let valor = 0;
-    
+
     if (assinatura.valorRelativo && assinatura.valorMin && assinatura.valorMax) {
       // Para valores relativos, usa a média
       valor = (parseFloat(assinatura.valorMin) + parseFloat(assinatura.valorMax)) / 2;
     } else if (assinatura.mensalidade && assinatura.mensalidade !== "") {
       valor = parseFloat(assinatura.mensalidade);
     }
-    
+
     // Retorna o valor como está (mensal ou anual)
     return isNaN(valor) ? 0 : valor;
   };
@@ -1153,27 +1181,27 @@ const Assinaturas = () => {
     if (!assinatura.descricao || assinatura.descricao.trim() === "") {
       return <span style={{ color: "#999", fontStyle: "italic" }}>Sem descrição</span>;
     }
-    
+
     const isExpanded = descricaoExpandida[assinatura.id];
     const maxLength = 80; // Máximo de caracteres antes do "ver mais"
-    
+
     if (assinatura.descricao.length <= maxLength) {
       return <span>{assinatura.descricao}</span>;
     }
-    
+
     if (isExpanded) {
       return (
         <div>
           <span>{assinatura.descricao}</span>
-          <button 
+          <button
             className="btn-ver-mais"
             onClick={() => toggleDescricao(assinatura.id)}
-            style={{ 
-              marginLeft: '8px', 
-              color: '#007bff', 
-              border: 'none', 
-              background: 'none', 
-              cursor: 'pointer', 
+            style={{
+              marginLeft: '8px',
+              color: '#007bff',
+              border: 'none',
+              background: 'none',
+              cursor: 'pointer',
               fontSize: '0.85em',
               textDecoration: 'underline'
             }}
@@ -1183,19 +1211,19 @@ const Assinaturas = () => {
         </div>
       );
     }
-    
+
     return (
       <div>
         <span>{assinatura.descricao.substring(0, maxLength)}...</span>
-        <button 
+        <button
           className="btn-ver-mais"
           onClick={() => toggleDescricao(assinatura.id)}
-          style={{ 
-            marginLeft: '8px', 
-            color: '#007bff', 
-            border: 'none', 
-            background: 'none', 
-            cursor: 'pointer', 
+          style={{
+            marginLeft: '8px',
+            color: '#007bff',
+            border: 'none',
+            background: 'none',
+            cursor: 'pointer',
             fontSize: '0.85em',
             textDecoration: 'underline'
           }}
@@ -1210,56 +1238,58 @@ const Assinaturas = () => {
   const exportarParaExcel = () => {
     // Preparar informações dos filtros aplicados
     const filtrosAplicados = [];
-    
+
     // Adicionar título dos filtros
     filtrosAplicados.push(["FILTROS APLICADOS NA EXPORTAÇÃO"]);
     filtrosAplicados.push([]); // Linha em branco
-    
+
     // Verificar quais filtros estão ativos
     if (searchTerm && searchTerm.trim() !== "") {
       filtrosAplicados.push(["Busca por Nome:", searchTerm]);
     }
-    
+
     if (statusFilter && statusFilter !== "") {
       const statusNomes = {
         "ativo": "Ativo",
-        "inativo": "Inativo", 
+        "inativo": "Inativo",
         "suspenso": "Suspenso"
       };
       filtrosAplicados.push(["Filtro de Status:", statusNomes[statusFilter] || statusFilter]);
     }
-    
+
     if (empresaFilter && empresaFilter !== "") {
       filtrosAplicados.push(["Filtro de Empresa:", empresaFilter]);
     }
-    
+
     // Se nenhum filtro estiver aplicado
     if (!searchTerm && !statusFilter && !empresaFilter) {
       filtrosAplicados.push(["Nenhum filtro aplicado", "Exibindo todas as assinaturas"]);
     }
-    
+
     filtrosAplicados.push([]); // Linha em branco
-    filtrosAplicados.push(["Data da Exportação:", new Date().toLocaleDateString('pt-BR', { 
-      day: '2-digit', 
-      month: '2-digit', 
+    filtrosAplicados.push(["Data da Exportação:", new Date().toLocaleDateString('pt-BR', {
+      day: '2-digit',
+      month: '2-digit',
       year: 'numeric',
       hour: '2-digit',
       minute: '2-digit'
     })]);
-    
+
     filtrosAplicados.push([]); // Linha em branco
     filtrosAplicados.push([]); // Linha em branco
 
     const headers = [
       "Nome",
       "Descrição",
-      "Empresa", 
+      "Empresa",
       "Valor",
       "Status",
       "Acesso",
-      "Tipo de Pagamento"
+      "Tipo de Pagamento", // mensal/anual
+      "Forma de Pagamento", // cartao/boleto/pix
+      "Ultimos 4 Digitos" // se cartao
     ];
-    
+
     const dados = filteredAssinaturas.map(assinatura => [
       assinatura.nome || "",
       assinatura.descricao || "", // Descrição completa na planilha
@@ -1267,37 +1297,39 @@ const Assinaturas = () => {
       obterValorNumericoParaPlanilha(assinatura), // Apenas número
       assinatura.status || "",
       assinatura.acesso || "",
-      assinatura.tipoPagamento || ""
+      assinatura.tipoPagamento || "",
+      assinatura.formaPagamento || "",
+      assinatura.formaPagamento === 'cartao' ? (assinatura.ultimosDigitos || "") : ""
     ]);
-    
+
     // Combinar filtros + headers + dados
     const dadosCompletos = [...filtrosAplicados, headers, ...dados];
-    
+
     // Criar planilha com todos os dados
     const ws = XLSX.utils.aoa_to_sheet(dadosCompletos);
-    
+
     // Calcular posição do resumo financeiro (considerando as linhas de filtros)
     const filtrosLinhas = filtrosAplicados.length;
     const resumoInicio = filtrosLinhas + dados.length + 4; // +4 para espaço após os dados
-    
+
     // Adicionar resumo financeiro no final
     const totais = calcularTotais();
-    
+
     // Adicionar título do resumo
     XLSX.utils.sheet_add_aoa(ws, [["RESUMO FINANCEIRO"]], { origin: `A${resumoInicio}` });
-    
+
     // Adicionar dados do resumo (apenas números)
     const resumoData = [
       ["Assinaturas Ativas", totais.quantidadeAtivos],
       ["Total Mensal (R$)", totais.totalMensalReal],
       ["Total Anual (R$)", totais.totalAnualReal]
     ];
-    
+
     XLSX.utils.sheet_add_aoa(ws, resumoData, { origin: `A${resumoInicio + 1}` });
-    
+
     // Aplicar formatação
     const range = XLSX.utils.decode_range(ws['!ref']);
-    
+
     // Formatação do título dos filtros (primeira linha)
     const tituloFiltrosCell = XLSX.utils.encode_cell({ r: 0, c: 0 });
     if (ws[tituloFiltrosCell]) {
@@ -1307,7 +1339,7 @@ const Assinaturas = () => {
         alignment: { horizontal: "center" }
       };
     }
-    
+
     // Formatação do cabeçalho da tabela (na linha após os filtros)
     const headerRow = filtrosLinhas;
     for (let col = range.s.c; col <= Math.min(range.e.c, headers.length - 1); col++) {
@@ -1319,7 +1351,7 @@ const Assinaturas = () => {
         alignment: { horizontal: "center" }
       };
     }
-    
+
     // Formatação do título do resumo financeiro
     const resumoTituloCell = XLSX.utils.encode_cell({ r: resumoInicio, c: 0 });
     if (ws[resumoTituloCell]) {
@@ -1328,7 +1360,7 @@ const Assinaturas = () => {
         fill: { fgColor: { rgb: "C8E6C9" } }
       };
     }
-    
+
     // Ajustar largura das colunas (sem coluna de moeda)
     const colWidths = [
       { wch: 30 }, // Nome / Filtros
@@ -1337,14 +1369,16 @@ const Assinaturas = () => {
       { wch: 18 }, // Mensalidade
       { wch: 12 }, // Status
       { wch: 35 }, // Acesso
-      { wch: 18 }  // Tipo Pagamento
+      { wch: 18 }, // Tipo Pagamento (mensal/anual)
+      { wch: 20 }, // Forma de Pagamento
+      { wch: 16 }  // Últimos 4 Dígitos
     ];
     ws['!cols'] = colWidths;
-    
+
     // Criar workbook e adicionar a planilha
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Assinaturas");
-    
+
     // Gerar nome do arquivo com indicação de filtros
     let suffixFiltro = "";
     if (searchTerm || statusFilter || empresaFilter) {
@@ -1352,7 +1386,7 @@ const Assinaturas = () => {
     }
     const fileName = `assinaturas${suffixFiltro}_${new Date().toISOString().slice(0, 10)}.xlsx`;
     XLSX.writeFile(wb, fileName);
-    
+
     toast.success(`Planilha Excel exportada com sucesso! ${filteredAssinaturas.length} registros exportados.`);
   };
 
@@ -1408,7 +1442,7 @@ const Assinaturas = () => {
         <ResumoFinanceiro>
           <h3 onClick={() => setResumoExpanded(!resumoExpanded)}>
             <div className="title-content">
-              <button 
+              <button
                 className="toggle-button"
                 onClick={(e) => {
                   e.stopPropagation();
@@ -1424,19 +1458,19 @@ const Assinaturas = () => {
               Exportar Excel
             </ExportButton>
           </h3>
-          
+
           <div className={`resumo-content ${resumoExpanded ? 'expanded' : 'collapsed'}`}>
             <div className="resumo-grid">
               <div className="resumo-item">
                 <div className="label">Assinaturas Ativas</div>
                 <div className="quantidade">{totais.quantidadeAtivos} assinaturas</div>
               </div>
-              
+
               <div className="resumo-item">
                 <div className="label">Custo Mensal Total</div>
                 <div className="valor">R$ {formatarValorBrasileiro(totais.totalMensalReal)}</div>
               </div>
-              
+
               <div className="resumo-item">
                 <div className="label">Custo Anual Total</div>
                 <div className="valor">R$ {formatarValorBrasileiro(totais.totalAnualReal)}</div>
@@ -1453,6 +1487,7 @@ const Assinaturas = () => {
                 <th>Descrição</th>
                 <th>Empresa</th>
                 <th>Valor</th>
+                <th>Pagamento</th>
                 <th>Status</th>
                 <th>Acesso</th>
                 <th>Ações</th>
@@ -1468,20 +1503,32 @@ const Assinaturas = () => {
                   <td className="empresa-cell">{assinatura.empresa || "Não informado"}</td>
                   <td className="valor-cell">{formatarValor(assinatura)}</td>
                   <td>
+                    {(() => {
+                      const forma = assinatura.formaPagamento;
+                      if (!forma) return <span style={{ color: '#999' }}>Não informado</span>;
+                      if (forma === 'cartao') {
+                        return `Cartão ****${assinatura.ultimosDigitos || '----'}`;
+                      }
+                      if (forma === 'boleto') return 'Boleto';
+                      if (forma === 'pix') return 'Pix';
+                      return forma;
+                    })()}
+                  </td>
+                  <td>
                     <span className={`status-badge ${assinatura.status}`}>
                       {assinatura.status}
                     </span>
                   </td>
                   <td>
                     {assinatura.acesso && assinatura.acesso !== "https://" ? (
-                      <a 
-                        href={assinatura.acesso} 
-                        target="_blank" 
+                      <a
+                        href={assinatura.acesso}
+                        target="_blank"
                         rel="noopener noreferrer"
                         className="link-cell"
                       >
-                        {assinatura.acesso.length > 30 ? 
-                          `${assinatura.acesso.substring(0, 30)}...` : 
+                        {assinatura.acesso.length > 30 ?
+                          `${assinatura.acesso.substring(0, 30)}...` :
                           assinatura.acesso
                         }
                       </a>
@@ -1514,7 +1561,7 @@ const Assinaturas = () => {
               ))}
               {filteredAssinaturas.length === 0 && (
                 <tr>
-                  <td colSpan="7" style={{ textAlign: "center", padding: "30px", color: "#666", fontStyle: "italic" }}>
+                  <td colSpan="8" style={{ textAlign: "center", padding: "30px", color: "#666", fontStyle: "italic" }}>
                     Nenhuma assinatura encontrada
                   </td>
                 </tr>
@@ -1540,7 +1587,7 @@ const Assinaturas = () => {
 
             <div className="form-section">
               <div className="section-title">Informações Básicas</div>
-              
+
               <div className="form-group full-width">
                 <label>
                   Nome da Assinatura <span className="required">*</span>
@@ -1627,7 +1674,7 @@ const Assinaturas = () => {
 
             <div className="form-section">
               <div className="section-title">Configurações Financeiras</div>
-              
+
               <div className="form-row">
                 <div className="form-group">
                   <label>Tipo de Pagamento</label>
@@ -1647,15 +1694,15 @@ const Assinaturas = () => {
                     onChange={(e) => {
                       const novaMoeda = e.target.value;
                       // Reformatar valores existentes para a nova moeda
-                      const mensalidadeAtualizada = newAssinatura.mensalidade ? 
+                      const mensalidadeAtualizada = newAssinatura.mensalidade ?
                         formatarValorInput(extrairValorNumerico(newAssinatura.mensalidade) + "00", novaMoeda) : "";
-                      const valorMinAtualizado = newAssinatura.valorMin ? 
+                      const valorMinAtualizado = newAssinatura.valorMin ?
                         formatarValorInput(extrairValorNumerico(newAssinatura.valorMin) + "00", novaMoeda) : "";
-                      const valorMaxAtualizado = newAssinatura.valorMax ? 
+                      const valorMaxAtualizado = newAssinatura.valorMax ?
                         formatarValorInput(extrairValorNumerico(newAssinatura.valorMax) + "00", novaMoeda) : "";
-                      
-                      setNewAssinatura({ 
-                        ...newAssinatura, 
+
+                      setNewAssinatura({
+                        ...newAssinatura,
                         moedaInput: novaMoeda,
                         mensalidade: mensalidadeAtualizada,
                         valorMin: valorMinAtualizado,
@@ -1667,12 +1714,43 @@ const Assinaturas = () => {
                     <option value="dolar">Dólar ($)</option>
                   </select>
                   <div className="input-help">
-                    {newAssinatura.moedaInput === "dolar" 
+                    {newAssinatura.moedaInput === "dolar"
                       ? `Valores em dólar serão convertidos para reais (cotação: R$ ${cotacaoDolar.toFixed(2)})`
                       : "Valores serão salvos em reais"
                     }
                   </div>
                 </div>
+              </div>
+
+              <div className="form-row">
+                <div className="form-group">
+                  <label>Forma de Pagamento</label>
+                  <select
+                    value={newAssinatura.formaPagamento}
+                    onChange={(e) => setNewAssinatura({ ...newAssinatura, formaPagamento: e.target.value })}
+                  >
+                    <option value="">Selecione</option>
+                    <option value="cartao">Cartão de Crédito</option>
+                    <option value="boleto">Boleto</option>
+                    <option value="pix">Pix</option>
+                  </select>
+                </div>
+                {newAssinatura.formaPagamento === 'cartao' && (
+                  <div className="form-group">
+                    <label>Últimos 4 Dígitos</label>
+                    <input
+                      type="text"
+                      value={newAssinatura.ultimosDigitos}
+                      maxLength={4}
+                      onChange={(e) => {
+                        const onlyNums = e.target.value.replace(/[^0-9]/g, '');
+                        setNewAssinatura({ ...newAssinatura, ultimosDigitos: onlyNums });
+                      }}
+                      placeholder="1234"
+                    />
+                    <div className="input-help">Armazenado apenas para referência interna</div>
+                  </div>
+                )}
               </div>
 
               <div className="checkbox-group">
@@ -1733,13 +1811,13 @@ const Assinaturas = () => {
             </div>
 
             <div className="button-group">
-              <button 
+              <button
                 className="secondary"
                 onClick={() => setModalAddIsOpen(false)}
               >
                 Cancelar
               </button>
-              <button 
+              <button
                 className="primary"
                 onClick={handleAddAssinatura}
               >
@@ -1766,7 +1844,7 @@ const Assinaturas = () => {
 
             <div className="form-section">
               <div className="section-title">Informações Básicas</div>
-              
+
               <div className="form-group full-width">
                 <label>
                   Nome da Assinatura <span className="required">*</span>
@@ -1853,7 +1931,7 @@ const Assinaturas = () => {
 
             <div className="form-section">
               <div className="section-title">Configurações Financeiras</div>
-              
+
               <div className="form-row">
                 <div className="form-group">
                   <label>Tipo de Pagamento</label>
@@ -1873,15 +1951,15 @@ const Assinaturas = () => {
                     onChange={(e) => {
                       const novaMoeda = e.target.value;
                       // Reformatar valores existentes para a nova moeda
-                      const mensalidadeAtualizada = editAssinaturaData.mensalidade ? 
+                      const mensalidadeAtualizada = editAssinaturaData.mensalidade ?
                         formatarValorInput(extrairValorNumerico(editAssinaturaData.mensalidade) + "00", novaMoeda) : "";
-                      const valorMinAtualizado = editAssinaturaData.valorMin ? 
+                      const valorMinAtualizado = editAssinaturaData.valorMin ?
                         formatarValorInput(extrairValorNumerico(editAssinaturaData.valorMin) + "00", novaMoeda) : "";
-                      const valorMaxAtualizado = editAssinaturaData.valorMax ? 
+                      const valorMaxAtualizado = editAssinaturaData.valorMax ?
                         formatarValorInput(extrairValorNumerico(editAssinaturaData.valorMax) + "00", novaMoeda) : "";
-                      
-                      setEditAssinaturaData({ 
-                        ...editAssinaturaData, 
+
+                      setEditAssinaturaData({
+                        ...editAssinaturaData,
                         moedaInput: novaMoeda,
                         mensalidade: mensalidadeAtualizada,
                         valorMin: valorMinAtualizado,
@@ -1893,12 +1971,43 @@ const Assinaturas = () => {
                     <option value="dolar">Dólar ($)</option>
                   </select>
                   <div className="input-help">
-                    {editAssinaturaData.moedaInput === "dolar" 
+                    {editAssinaturaData.moedaInput === "dolar"
                       ? `Valores em dólar serão convertidos para reais (cotação: R$ ${cotacaoDolar.toFixed(2)})`
                       : "Valores serão salvos em reais"
                     }
                   </div>
                 </div>
+              </div>
+
+              <div className="form-row">
+                <div className="form-group">
+                  <label>Forma de Pagamento</label>
+                  <select
+                    value={editAssinaturaData.formaPagamento}
+                    onChange={(e) => setEditAssinaturaData({ ...editAssinaturaData, formaPagamento: e.target.value })}
+                  >
+                    <option value="">Selecione</option>
+                    <option value="cartao">Cartão de Crédito</option>
+                    <option value="boleto">Boleto</option>
+                    <option value="pix">Pix</option>
+                  </select>
+                </div>
+                {editAssinaturaData.formaPagamento === 'cartao' && (
+                  <div className="form-group">
+                    <label>Últimos 4 Dígitos</label>
+                    <input
+                      type="text"
+                      value={editAssinaturaData.ultimosDigitos}
+                      maxLength={4}
+                      onChange={(e) => {
+                        const onlyNums = e.target.value.replace(/[^0-9]/g, '');
+                        setEditAssinaturaData({ ...editAssinaturaData, ultimosDigitos: onlyNums });
+                      }}
+                      placeholder="1234"
+                    />
+                    <div className="input-help">Armazenado apenas para referência interna</div>
+                  </div>
+                )}
               </div>
 
               <div className="checkbox-group">
@@ -1959,13 +2068,13 @@ const Assinaturas = () => {
             </div>
 
             <div className="button-group">
-              <button 
+              <button
                 className="secondary"
                 onClick={() => setModalEditIsOpen(false)}
               >
                 Cancelar
               </button>
-              <button 
+              <button
                 className="primary"
                 onClick={handleEditAssinatura}
               >
@@ -1981,9 +2090,9 @@ const Assinaturas = () => {
           onRequestClose={() => setDeleteModal(false)}
           style={{
             overlay: { backgroundColor: "rgba(0, 0, 0, 0.5)", zIndex: "15" },
-            content: { 
-              margin: "auto", 
-              width: "400px", 
+            content: {
+              margin: "auto",
+              width: "400px",
               height: "200px",
               overflow: "hidden",
               borderRadius: "0",
