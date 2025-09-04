@@ -14,6 +14,7 @@ import FastHomes from "../pages/BC/fasthomes";
 import NovaMetalica from "../pages/BC/novametalica";
 import { MdOutlineAttachMoney } from "react-icons/md";
 import Assinaturas from "../pages/Assinaturas";
+import { RiFilePaper2Line } from "react-icons/ri";
 
 
 const Content = styled.div`
@@ -248,6 +249,14 @@ const menuOptions = [
     ),
     component: <Sites /> 
   },
+
+  { 
+    title: "Relatório pré-vendas", 
+    icon: (
+      <RiFilePaper2Line />
+    ),
+    component: <Sites /> 
+  },
 ];
 
 const menuBancoDeDados = [
@@ -273,32 +282,6 @@ const menuBancoDeDados = [
       <img src="https://www.novametalica.com.br/avatar.ico" alt="" />
     ),
     component: <NovaMetalica />
-  },
-]
-
-const menuMetricas = [
-  { 
-    title: "Google", 
-    icon: (
-      <svg id="fi_3128285" enable-background="new 0 0 100 100" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><g id="_x34_3.Google_Adwords"><path d="m57.193 15.502c-7.021-4.054-15.985-1.653-20.039 5.37l-25.162 43.583c-6.494 11.247 3.912 24.878 16.501 21.504 3.785-1.014 6.948-3.442 8.907-6.835l25.162-43.583c4.045-7.005 1.636-15.994-5.369-20.039z" fill="#fabc04"></path><path d="m88.038 64.455-25.163-43.583c-1.959-3.393-5.123-5.821-8.907-6.835-12.593-3.375-22.991 10.262-16.501 21.504l25.163 43.583c4.053 7.019 13.015 9.425 20.039 5.37 7.004-4.045 9.413-13.034 5.369-20.039z" fill="#3c8bd9"></path><path d="m38.865 67.993c-2.098-7.831-10.134-12.472-17.966-10.373-12.593 3.374-14.78 20.383-3.538 26.874 11.216 6.475 24.897-3.84 21.504-16.501z" fill="#34a852"></path></g></svg>
-    ),
-    component: <BancoDeDados />
-  },
-
-  { 
-    title: "Meta", 
-    icon: (
-      <svg id="fi_6033716" enable-background="new 0 0 512 512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><linearGradient id="SVGID_1_" gradientTransform="matrix(1 0 0 -1 0 514)" gradientUnits="userSpaceOnUse" x1="5.3" x2="506.8" y1="258.1" y2="258.1"><stop offset="0" stop-color="#0064e0"></stop><stop offset=".06176297" stop-color="#006ae5"></stop><stop offset=".2183" stop-color="#007af4"></stop><stop offset=".8106" stop-color="#007df6"></stop><stop offset="1" stop-color="#0080f9"></stop></linearGradient><linearGradient id="SVGID_00000108294422424748979490000015468411590085554596_" gradientTransform="matrix(1 0 0 -1 0 514)" gradientUnits="userSpaceOnUse" x1="49.786" x2="230.719" y1="320.675" y2="133.579"><stop offset="0" stop-color="#0064e0"></stop><stop offset=".0134753" stop-color="#0065e1"></stop><stop offset=".2894" stop-color="#0075f0"></stop><stop offset=".5971" stop-color="#007ff9"></stop><stop offset="1" stop-color="#0082fc"></stop></linearGradient><linearGradient id="SVGID_00000011014187292083061840000001297153340796386228_" gradientTransform="matrix(1 0 0 -1 0 514)" gradientUnits="userSpaceOnUse" x1="110.25" x2="416.1" y1="451.784" y2="121.254"><stop offset="0" stop-color="#0082fb"></stop><stop offset=".02167212" stop-color="#017cf5"></stop><stop offset=".09047851" stop-color="#0471ea"></stop><stop offset=".1872" stop-color="#066ae3"></stop><stop offset=".4561" stop-color="#0668e1"></stop><stop offset=".7462" stop-color="#056ae3"></stop><stop offset=".8847" stop-color="#0472eb"></stop><stop offset=".9742" stop-color="#017cf5"></stop><stop offset="1" stop-color="#0082fb"></stop></linearGradient><linearGradient id="SVGID_00000115496449546236234580000017061870114335014073_" gradientTransform="matrix(1 0 0 -1 0 514)" gradientUnits="userSpaceOnUse" x1="49" x2="262.7" y1="365.75" y2="365.75"><stop offset="0" stop-color="#0064e0"></stop><stop offset=".4218" stop-color="#0069e4"></stop><stop offset=".4332" stop-color="#0069e4"></stop><stop offset="1" stop-color="#0668e1"></stop></linearGradient><linearGradient id="SVGID_00000150100707639943330890000011886544216348691624_" gradientTransform="matrix(1 0 0 -1 0 514)" gradientUnits="userSpaceOnUse" x1="324.016" x2="506.8" y1="149.85" y2="149.85"><stop offset="0" stop-color="#066be3"></stop><stop offset=".3087" stop-color="#0470e9"></stop><stop offset=".559" stop-color="#0279f2"></stop><stop offset="1" stop-color="#0080f9"></stop></linearGradient><path d="m149.4 89.4c-81.6 0-144.1 106.2-144.1 218.5 0 70.3 34 114.7 91 114.7 41 0 70.5-19.3 123-111 0 0 21.9-38.6 36.9-65.2l31.2-52.8c26.5-40.9 48.4-61.3 74.4-61.3 54 0 97.2 79.5 97.2 177.2 0 37.2-12.2 58.8-37.5 58.8-24.2 0-35.8-16-81.8-90l-42.3 36.9c47.9 80.2 74.6 107.4 123 107.4 55.5 0 86.4-45.1 86.4-116.9 0-117.7-63.9-216.5-141.6-216.5-41.1 0-73.3 31-102.4 70.3l-32.3 47.4c-31.9 49-51.3 79.7-51.3 79.7-42.5 66.7-57.2 81.6-80.9 81.6-24.4 0-38.8-21.4-38.8-59.5 0-81.6 40.7-165 89.2-165z" fill="url(#SVGID_1_)"></path><path d="m265.5 196.4-35 10.8c-31.9 49-51.3 79.7-51.3 79.7-42.5 66.7-57.2 81.6-80.9 81.6-24.4 0-38.8-21.4-38.8-59.5 0-81.6 40.7-165 89.2-165l.7-54.5c-81.6-.1-144.1 106.1-144.1 218.4 0 70.3 34 114.7 91 114.7 41 0 70.5-19.3 123-111 0 0 21.9-38.6 36.9-65.2z" fill="url(#SVGID_00000108294422424748979490000015468411590085554596_)"></path><path d="m297.4 315.3c47.9 80.2 74.6 107.3 123 107.3l1.1-54.3c-24.2 0-35.8-15.9-81.8-89.9-38.6-62.8-58.3-94.2-76.9-118.7-40-50.9-73.4-70.3-113.4-70.3l-.7 54.5c26.3 0 48.2 15.2 81.8 63.3 14.1 19.8 43 66.9 66.9 108.1z" fill="url(#SVGID_00000011014187292083061840000001297153340796386228_)"></path><path d="m262.7 159.7c-40-50.9-73.4-70.3-113.5-70.3-39.5 0-74.5 24.9-100.2 63.3l38.6 39.5c16.1-29.1 37.8-48.2 61.1-48.2 26.3 0 48 15 81.6 63.1z" fill="url(#SVGID_00000115496449546236234580000017061870114335014073_)"></path><path d="m324 357.3c32.9 47.9 57.7 65.3 96.4 65.3 55.5 0 86.4-45.1 86.4-116.9l-47.8 3.8c0 37.2-12.2 58.8-37.5 58.8-19.5 0-30.9-10.4-58.8-53.4z" fill="url(#SVGID_00000150100707639943330890000011886544216348691624_)"></path></svg>
-    ),
-    component: <BancoDeDados />
-  },
-
-  { 
-    title: "Google & Meta", 
-    icon: (
-      <svg id="fi_3128287" enable-background="new 0 0 100 100" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><g id="_x34_4.Google_Search"><path d="m42.237 20.749c11.844 0 21.48 9.638 21.48 21.486v-.88h10.731c-.46-17.074-14.256-30.871-31.332-31.332v10.726z" fill="#e74339"></path><path d="m67.957 55.14h10.753v36.387h-10.753z" fill="#4489f1" transform="matrix(-.707 .707 -.707 -.707 177.043 73.335)"></path><path d="m74.448 41.354h-10.731v.88c-.001 11.846-9.637 21.483-21.482 21.483h.88v10.731c17.074-.46 30.871-14.258 31.332-31.334.008-.293.022-.584.022-.878v-.002-.878h-.021z" fill="#4489f1"></path><path d="m42.235 63.717c-11.844-.001-21.481-9.638-21.482-21.482v.878l-.88.002h-9.85c.462 17.074 14.259 30.87 31.332 31.332.293.008.585.022.88.022h.002.878v-.022-10.73z" fill="#38a856"></path><path d="m20.753 43.113v-.878-.002c0-11.845 9.637-21.483 21.482-21.484h.002.878v-10.727-.022h-.88c-.295 0-.587.014-.88.022-17.075.463-30.871 14.258-31.333 31.332-.008.294-.022.586-.022.881v.88h.022 9.85z" fill="#fabc2d"></path></g></svg>
-    ),
-    component: <BancoDeDados />
   },
 ]
 
@@ -349,7 +332,14 @@ const Homepage = () => {
               {menuOptions.map((option) => (
                 <li
                   key={option.title}
-                  onClick={() => handleOptionClick(option)}
+                  onClick={() => {
+                    if (option.title === "Relatório pré-vendas") {
+                      // Abre o relatório em nova aba
+                      window.open('https://relatorio.fastsistemasconstrutivos.com.br', '_blank', 'noopener,noreferrer');
+                      return;
+                    }
+                    handleOptionClick(option);
+                  }}
                   className={selectedOption === option.title ? "active" : ""}
                 >
                   {option.icon}
@@ -373,19 +363,6 @@ const Homepage = () => {
                 ))}
                 <aside>
                 </aside>
-                <div>
-                  <h2>Métricas e relatórios</h2>
-                </div>
-                 {menuMetricas.map((option) => (
-                <li
-                  key={option.title}
-                  onClick={() => handleOptionClick(option)}
-                  className={selectedOption === option.title ? "active" : ""}
-                >
-                  {option.icon}
-                  <span>{option.title}</span>
-                </li>
-                ))}
             </ol>
             <Autor>
                 <span>Desenvolvido por <a href="https://wa.me/24981411940" target="_blank">aleph</a></span>
