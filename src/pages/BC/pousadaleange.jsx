@@ -4,7 +4,7 @@ import styled from "styled-components";
 const Container = styled.div`
   overflow-y: auto;
   height: auto;
-  max-height: 80vh;
+  max-height: 100vh;
   padding: 0px 10px 20px 10px;
 `;
 

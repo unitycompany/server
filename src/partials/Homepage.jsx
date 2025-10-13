@@ -20,6 +20,7 @@ import { RiFilePaper2Line } from "react-icons/ri";
 const Content = styled.div`
   max-height: 100vh;
   overflow: hidden;
+  width: 100%;
 `;
 
 const Title = styled.div`
@@ -63,18 +64,18 @@ const Title = styled.div`
 const Lista = styled.div`
   border: 1px solid #00000020;
   width: 30%;
-  max-width: 350px;
+  max-width: 300px;
   height: 100%;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
   justify-content: space-between;
-  min-height: 80vh;
+  min-height: 100vh;
   gap: 5px;
   padding: 5px 10px 10px 10px;
   position: relative;
   border-top: none;
-  border-left: 3px solid #000000;
+  border-left: 2px solid #000000;
 
   & ol {
     display: flex;
@@ -176,10 +177,10 @@ const Container = styled.div`
 const Option = styled.div`
   width: 70%;
   height: 100%;
-  min-height: 80vh;
+  min-height: 100vh;
   border: 1px solid #00000020;
   border-top: none;
-  border-left: 3px solid #000000;
+  border-left: 2px solid #000000;
 `;
 
 const Autor = styled.div`
@@ -317,11 +318,11 @@ const Homepage = () => {
   return (
     <>
       <Content>
-        <Title>
+        {/* <Title>
           <span>Controle dos sites</span>
           <h1>Painel Administrativo</h1>
           <p>{currentUser?.displayName || currentUser?.email}</p>
-        </Title>
+        </Title> */}
 
         <Container>
           <Lista>

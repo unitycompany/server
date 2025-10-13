@@ -6,7 +6,7 @@ import Blog from "../../components/NovaMetalica/Blog";
 const Container = styled.div`
   overflow-y: auto;
   height: auto;
-  max-height: 65vh;
+  max-height: 100vh;
   padding: 5px;
 `;
 

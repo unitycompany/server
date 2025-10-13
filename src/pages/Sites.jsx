@@ -25,7 +25,7 @@ const Content = styled.div`
   gap: 10px;
   width: 100%;
   overflow-y: auto;
-  max-height: 80vh;
+  max-height: 100vh;
   position: relative;
 
   & h1 {

@@ -17,7 +17,7 @@ import { LiaExternalLinkAltSolid } from "react-icons/lia";
 
 // Estilizações
 const Content = styled.div`
-  max-height: 80vh;
+  max-height: 100vh;
   height: auto;
   width: 100%;
   overflow-y: auto;

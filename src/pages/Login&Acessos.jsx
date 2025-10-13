@@ -119,7 +119,7 @@ const Content = styled.div`
   gap: 10px;
   width: 100%;
   overflow-y: auto;
-  max-height: 80vh;
+  max-height: 100vh;
   position: relative;
 
   & h1 {
@@ -228,6 +228,8 @@ const ModalContent = styled.div`
   gap: 20px;
   outline: none;
   height: auto;
+  max-height: 90vh;
+  overflow-y: auto;
 
   & .StyleGoogle {
     border: 1px solid #00000020;
