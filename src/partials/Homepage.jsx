@@ -14,7 +14,7 @@ import FastHomes from "../pages/BC/fasthomes";
 import NovaMetalica from "../pages/BC/novametalica";
 import { MdOutlineAttachMoney } from "react-icons/md";
 import Assinaturas from "../pages/Assinaturas";
-import { RiFilePaper2Line } from "react-icons/ri";
+import { RiArticleLine, RiFilePaper2Line } from "react-icons/ri";
 
 
 const Content = styled.div`
@@ -244,17 +244,17 @@ const menuOptions = [
   // },
 
   { 
-    title: "Sites", 
+    title: "Relatório pré-vendas", 
     icon: (
-      <HiMiniSquare3Stack3D />
+      <RiFilePaper2Line />
     ),
     component: <Sites /> 
   },
 
   { 
-    title: "Relatório pré-vendas", 
+    title: "Blog NM", 
     icon: (
-      <RiFilePaper2Line />
+      <img src="https://www.novametalica.com.br/avatar.ico" alt="" />
     ),
     component: <Sites /> 
   },
@@ -275,15 +275,7 @@ const menuBancoDeDados = [
       <img src="https://imagedelivery.net/1n9Gwvykoj9c9m8C_4GsGA/8ce698f2-4801-4660-4282-aac5cbde5200/public" alt="" />
     ),
     component: <FastHomes />
-  },
-
-  { 
-    title: "Nova Metálica", 
-    icon: (
-      <img src="https://www.novametalica.com.br/avatar.ico" alt="" />
-    ),
-    component: <NovaMetalica />
-  },
+  }
 ]
 
 const Homepage = () => {
@@ -337,6 +329,10 @@ const Homepage = () => {
                     if (option.title === "Relatório pré-vendas") {
                       // Abre o relatório em nova aba
                       window.open('https://relatorio.fastsistemasconstrutivos.com.br', '_blank', 'noopener,noreferrer');
+                      return;
+                    }
+                    if (option.title === "Blog NM") {
+                      window.open('https://blog.novametalica.com.br/admin', '_blank', 'noopener,noreferrer');
                       return;
                     }
                     handleOptionClick(option);
