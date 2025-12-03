@@ -1,12 +1,15 @@
 import React, { useState, useEffect } from "react";
 import styled from "styled-components";
 import InputMask from "react-input-mask";
-import { collection, getDocs, deleteDoc, doc, updateDoc, addDoc } from "firebase/firestore";
+import { collection, getDocs, deleteDoc, doc, updateDoc, addDoc, setDoc } from "firebase/firestore";
 import { getDatabase } from "../../../firebaseConfig"; // ajuste o caminho conforme necessário
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { FaCheck } from "react-icons/fa"; // para referência do ícone
 import Joyride from "react-joyride";
+
+const EVENT_COLLECTION = "Eventos";
+const EVENT_ARCHIVE_COLLECTION = "EventosArquivados";
 
 // Exemplo opcional de mapeamento de ícones
 const iconMap = {
@@ -45,6 +48,7 @@ const Card = styled.div`
     display: flex;
     flex-direction: column;
     gap: 15px;
+    position: relative;
 
     & img {
       width: 250px;
@@ -70,10 +74,12 @@ const Card = styled.div`
     justify-content: space-between;
     width: 100%;
     gap: 10px;
+    flex-wrap: wrap;
 
     & button {
       cursor: pointer;
-      width: 50%;
+      flex: 1;
+      min-width: 30%;
       padding: 4px 10px;
       border: 1px solid #00000050;
       font-size: 14px;
@@ -84,6 +90,19 @@ const Card = styled.div`
       }
     }
   }
+`;
+
+const StatusTag = styled.span`
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  padding: 3px 8px;
+  font-size: 10px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  background-color: ${(props) => (props.$archived ? '#8b0000' : '#0c8b00')};
+  color: #fff;
+  border-radius: 4px;
 `;
 
 const CardGrid = styled.div`
@@ -339,6 +358,8 @@ const EditModal = ({ eventData, onSave, onCancel }) => {
     dataEntrada: initialDataEntrada,
     dataSaida: initialDataSaida,
     dateRange: eventData.dateRange || "",
+    archived: eventData.archived ?? false,
+    _collection: eventData._collection || EVENT_COLLECTION,
     features: initialFeatures
   });
 
@@ -352,7 +373,11 @@ const EditModal = ({ eventData, onSave, onCancel }) => {
   }, [dataEntrada, dataSaida]);
 
   const handleFieldChange = (e) => {
-    const { name, value } = e.target;
+    const { name, value, type, checked } = e.target;
+    if (name === "archived") {
+      setFormValues({ ...formValues, archived: type === "checkbox" ? checked : value === "true" });
+      return;
+    }
     setFormValues({ ...formValues, [name]: value });
   };
 
@@ -481,6 +506,19 @@ const EditModal = ({ eventData, onSave, onCancel }) => {
                 placeholder="dd/mm/aaaa até dd/mm/aaaa (X diárias)"
               />
               {formValues.dateRange && formValues.dateRange.trim() !== "" && <CheckIconStyled size={16} />}
+            </InputContainer>
+          </label>
+          <label className="status">
+            <span>Status</span>
+            <InputContainer>
+              <select
+                name="archived"
+                value={formValues.archived ? "true" : "false"}
+                onChange={handleFieldChange}
+              >
+                <option value="false">Ativo</option>
+                <option value="true">Arquivado</option>
+              </select>
             </InputContainer>
           </label>
           <label className="imagem">
@@ -624,18 +662,43 @@ const Event = ({ onBack }) => {
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(false);
   const [editingEvent, setEditingEvent] = useState(null);
-  const [deleteEventId, setDeleteEventId] = useState(null);
+  const [deleteEventTarget, setDeleteEventTarget] = useState(null);
   const [isAdding, setIsAdding] = useState(false);
 
   const db = getDatabase("banco2");
 
+  const buildEventPayload = (values, overrides = {}) => {
+    const { id: _id, _collection, features, ...rest } = values;
+    return {
+      ...rest,
+      ...overrides,
+      features:
+        typeof features === "string"
+          ? JSON.parse(features)
+          : Array.isArray(features)
+          ? features
+          : [],
+    };
+  };
+
+  const fetchCollectionData = async (collectionName, isArchived) => {
+    const snapshot = await getDocs(collection(db, collectionName));
+    return snapshot.docs.map((docSnap) => ({
+      id: docSnap.id,
+      ...docSnap.data(),
+      archived: isArchived,
+      _collection: collectionName,
+    }));
+  };
+
   const fetchEvents = async () => {
     setLoading(true);
     try {
-      const colRef = collection(db, "Eventos"); // Certifique-se de que o nome da coleção esteja correto
-      const snapshot = await getDocs(colRef);
-      const items = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
-      setEvents(items);
+      const [activeItems, archivedItems] = await Promise.all([
+        fetchCollectionData(EVENT_COLLECTION, false),
+        fetchCollectionData(EVENT_ARCHIVE_COLLECTION, true),
+      ]);
+      setEvents([...activeItems, ...archivedItems]);
     } catch (error) {
       console.error("Erro ao buscar eventos:", error);
     } finally {
@@ -647,10 +710,12 @@ const Event = ({ onBack }) => {
     fetchEvents();
   }, []);
 
-  const handleDeleteConfirm = async (id) => {
+  const handleDeleteConfirm = async () => {
+    if (!deleteEventTarget) return;
     try {
-      await deleteDoc(doc(db, "Eventos", id));
-      setDeleteEventId(null);
+      const collectionName = deleteEventTarget._collection || (deleteEventTarget.archived ? EVENT_ARCHIVE_COLLECTION : EVENT_COLLECTION);
+      await deleteDoc(doc(db, collectionName, deleteEventTarget.id));
+      setDeleteEventTarget(null);
       fetchEvents();
       toast.warn("Evento excluído com sucesso!");
     } catch (error) {
@@ -661,14 +726,17 @@ const Event = ({ onBack }) => {
 
   const handleEditSave = async (updatedValues) => {
     try {
-      const updatedData = {
-        ...updatedValues,
-        features:
-          typeof updatedValues.features === "string"
-            ? JSON.parse(updatedValues.features)
-            : updatedValues.features
-      };
-      await updateDoc(doc(db, "Eventos", updatedValues.id), updatedData);
+      const targetCollection = updatedValues.archived ? EVENT_ARCHIVE_COLLECTION : EVENT_COLLECTION;
+      const currentCollection = updatedValues._collection || (updatedValues.archived ? EVENT_ARCHIVE_COLLECTION : EVENT_COLLECTION);
+      const payload = buildEventPayload(updatedValues, { archived: updatedValues.archived ?? false });
+
+      if (currentCollection === targetCollection) {
+        await updateDoc(doc(db, targetCollection, updatedValues.id), payload);
+      } else {
+        await setDoc(doc(db, targetCollection, updatedValues.id), payload);
+        await deleteDoc(doc(db, currentCollection, updatedValues.id));
+      }
+
       setEditingEvent(null);
       fetchEvents();
       toast.success("Evento atualizado com sucesso!");
@@ -680,14 +748,8 @@ const Event = ({ onBack }) => {
 
   const handleAddSave = async (newValues) => {
     try {
-      const updatedData = {
-        ...newValues,
-        features:
-          typeof newValues.features === "string"
-            ? JSON.parse(newValues.features)
-            : newValues.features
-      };
-      await addDoc(collection(db, "Eventos"), updatedData);
+      const payload = buildEventPayload(newValues, { archived: false });
+      await addDoc(collection(db, EVENT_COLLECTION), payload);
       setIsAdding(false);
       fetchEvents();
       toast.success("Evento adicionado com sucesso!");
@@ -697,10 +759,30 @@ const Event = ({ onBack }) => {
     }
   };
 
+  const handleArchiveToggle = async (targetEvent) => {
+    try {
+      const sourceCollection = targetEvent._collection || (targetEvent.archived ? EVENT_ARCHIVE_COLLECTION : EVENT_COLLECTION);
+      const destinationCollection = targetEvent.archived ? EVENT_COLLECTION : EVENT_ARCHIVE_COLLECTION;
+      const payload = buildEventPayload(targetEvent, { archived: !targetEvent.archived });
+
+      await setDoc(doc(db, destinationCollection, targetEvent.id), payload);
+      await deleteDoc(doc(db, sourceCollection, targetEvent.id));
+
+      fetchEvents();
+      toast.info(targetEvent.archived ? "Evento reativado com sucesso!" : "Evento arquivado com sucesso!");
+    } catch (error) {
+      console.error("Erro ao atualizar status do evento:", error);
+      toast.error("Não foi possível alterar o status do evento!");
+    }
+  };
+
   const renderCard = (event) => {
     return (
-      <Card key={event.id}>
+      <Card key={event.id} style={{ opacity: event.archived ? 0.6 : 1 }}>
         <div>
+          <StatusTag $archived={event.archived}>
+            {event.archived ? "Arquivado" : "Ativo"}
+          </StatusTag>
           <img src={event.image} alt={event.title} />
           <h1>{event.title}</h1>
           <span>{event.dateRange}</span>
@@ -714,7 +796,10 @@ const Event = ({ onBack }) => {
           >
             Editar
           </button>
-          <button onClick={() => setDeleteEventId(event.id)}>Excluir</button>
+          <button onClick={() => handleArchiveToggle(event)}>
+            {event.archived ? "Reativar" : "Arquivar"}
+          </button>
+          <button onClick={() => setDeleteEventTarget(event)}>Excluir</button>
         </article>
       </Card>
     );
@@ -759,10 +844,10 @@ const Event = ({ onBack }) => {
           onCancel={() => setIsAdding(false)}
         />
       )}
-      {deleteEventId && (
+      {deleteEventTarget && (
         <ConfirmDeleteModal
-          onConfirm={() => handleDeleteConfirm(deleteEventId)}
-          onCancel={() => setDeleteEventId(null)}
+          onConfirm={handleDeleteConfirm}
+          onCancel={() => setDeleteEventTarget(null)}
         />
       )}
     </Content>

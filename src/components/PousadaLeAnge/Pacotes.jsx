@@ -1,12 +1,15 @@
 import React, { useEffect, useState } from "react";
 import styled from "styled-components";
 import InputMask from "react-input-mask";
-import { collection, getDocs, deleteDoc, doc, updateDoc, addDoc } from "firebase/firestore";
+import { collection, getDocs, deleteDoc, doc, updateDoc, addDoc, setDoc } from "firebase/firestore";
 import { getDatabase } from "../../../firebaseConfig"; // ajuste o caminho conforme necessário
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import Joyride from 'react-joyride';
 import { FaCheck } from "react-icons/fa";
+
+const PACKAGES_COLLECTION = "pacotes";
+const PACKAGES_ARCHIVE_COLLECTION = "pacotesArquivados";
 
 // Container para inputs que permite posicionar o ícone de check
 const InputContainer = styled.div`
@@ -79,10 +82,12 @@ const Card = styled.div`
     justify-content: space-between;
     width: 100%;
     gap: 10px;
+    flex-wrap: wrap;
 
     & button {
       cursor: pointer;
-      width: 50%;
+      flex: 1;
+      min-width: 30%;
       padding: 4px 10px;
       border: 1px solid #00000050;
       font-size: 14px;
@@ -93,6 +98,19 @@ const Card = styled.div`
       }
     }
   }
+`;
+
+const StatusTag = styled.span`
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  padding: 3px 8px;
+  font-size: 10px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  background-color: ${(props) => (props.$archived ? '#8b0000' : '#0c8b00')};
+  color: #fff;
+  border-radius: 4px;
 `;
 
 const CardGrid = styled.div`
@@ -371,12 +389,18 @@ const EditModal = ({ eventData, onSave, onCancel }) => {
     topics: initialTopics,
     suites: initialSuites,
     dataEntrada: initialDataEntrada,
-    dataSaida: initialDataSaida
+    dataSaida: initialDataSaida,
+    archived: eventData.archived ?? false,
+    _collection: eventData._collection || PACKAGES_COLLECTION
   });
 
   // Atualiza os valores do formulário
   const handleFieldChange = (e) => {
     const { name, value } = e.target;
+    if (name === "archived") {
+      setFormValues({ ...formValues, archived: value === "true" });
+      return;
+    }
     setFormValues({ ...formValues, [name]: value });
   };
 
@@ -513,6 +537,19 @@ const EditModal = ({ eventData, onSave, onCancel }) => {
             <InputContainer>
               <input type="text" readOnly value={computedDescription} />
               {computedDescription && computedDescription.trim() !== "" && <CheckIconStyled size={16} />}
+            </InputContainer>
+          </label>
+          <label className="status">
+            <span>Status</span>
+            <InputContainer>
+              <select
+                name="archived"
+                value={formValues.archived ? "true" : "false"}
+                onChange={handleFieldChange}
+              >
+                <option value="false">Ativo</option>
+                <option value="true">Arquivado</option>
+              </select>
             </InputContainer>
           </label>
           <label className="imagem">
@@ -662,18 +699,37 @@ const Pacotes = ({ onBack }) => {
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(false);
   const [editingEvent, setEditingEvent] = useState(null);
-  const [deleteEventId, setDeleteEventId] = useState(null);
+  const [deleteTarget, setDeleteTarget] = useState(null);
   const [isAdding, setIsAdding] = useState(false);
 
   const db = getDatabase("banco2");
 
+  const buildPackagePayload = (values, overrides = {}) => {
+    const { id: _id, _collection, ...rest } = values;
+    return {
+      ...rest,
+      ...overrides,
+    };
+  };
+
+  const fetchCollectionData = async (collectionName, isArchived) => {
+    const snapshot = await getDocs(collection(db, collectionName));
+    return snapshot.docs.map((docSnap) => ({
+      id: docSnap.id,
+      ...docSnap.data(),
+      archived: isArchived,
+      _collection: collectionName,
+    }));
+  };
+
   const fetchEvents = async () => {
     setLoading(true);
     try {
-      const colRef = collection(db, "pacotes");
-      const snapshot = await getDocs(colRef);
-      const items = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
-      setEvents(items);
+      const [activeItems, archivedItems] = await Promise.all([
+        fetchCollectionData(PACKAGES_COLLECTION, false),
+        fetchCollectionData(PACKAGES_ARCHIVE_COLLECTION, true),
+      ]);
+      setEvents([...activeItems, ...archivedItems]);
     } catch (error) {
       console.error("Erro ao buscar pacotes:", error);
     } finally {
@@ -685,10 +741,12 @@ const Pacotes = ({ onBack }) => {
     fetchEvents();
   }, []);
 
-  const handleDeleteConfirm = async (id) => {
+  const handleDeleteConfirm = async () => {
+    if (!deleteTarget) return;
     try {
-      await deleteDoc(doc(db, "pacotes", id));
-      setDeleteEventId(null);
+      const collectionName = deleteTarget._collection || (deleteTarget.archived ? PACKAGES_ARCHIVE_COLLECTION : PACKAGES_COLLECTION);
+      await deleteDoc(doc(db, collectionName, deleteTarget.id));
+      setDeleteTarget(null);
       fetchEvents();
       toast.warn("Pacote excluido com sucesso");
     } catch (error) {
@@ -699,7 +757,17 @@ const Pacotes = ({ onBack }) => {
 
   const handleEditSave = async (updatedValues) => {
     try {
-      await updateDoc(doc(db, "pacotes", updatedValues.id), updatedValues);
+      const targetCollection = updatedValues.archived ? PACKAGES_ARCHIVE_COLLECTION : PACKAGES_COLLECTION;
+      const currentCollection = updatedValues._collection || (updatedValues.archived ? PACKAGES_ARCHIVE_COLLECTION : PACKAGES_COLLECTION);
+      const payload = buildPackagePayload(updatedValues, { archived: updatedValues.archived ?? false });
+
+      if (currentCollection === targetCollection) {
+        await updateDoc(doc(db, targetCollection, updatedValues.id), payload);
+      } else {
+        await setDoc(doc(db, targetCollection, updatedValues.id), payload);
+        await deleteDoc(doc(db, currentCollection, updatedValues.id));
+      }
+
       setEditingEvent(null);
       fetchEvents();
       toast.success("Pacote atualizado com sucesso");
@@ -711,7 +779,8 @@ const Pacotes = ({ onBack }) => {
 
   const handleAddSave = async (newValues) => {
     try {
-      await addDoc(collection(db, "pacotes"), newValues);
+      const payload = buildPackagePayload(newValues, { archived: false });
+      await addDoc(collection(db, PACKAGES_COLLECTION), payload);
       setIsAdding(false);
       fetchEvents();
       toast.success("Pacote adicionado com sucesso");
@@ -721,10 +790,30 @@ const Pacotes = ({ onBack }) => {
     }
   };
 
+  const handleArchiveToggle = async (targetEvent) => {
+    try {
+      const sourceCollection = targetEvent._collection || (targetEvent.archived ? PACKAGES_ARCHIVE_COLLECTION : PACKAGES_COLLECTION);
+      const destinationCollection = targetEvent.archived ? PACKAGES_COLLECTION : PACKAGES_ARCHIVE_COLLECTION;
+      const payload = buildPackagePayload(targetEvent, { archived: !targetEvent.archived });
+
+      await setDoc(doc(db, destinationCollection, targetEvent.id), payload);
+      await deleteDoc(doc(db, sourceCollection, targetEvent.id));
+
+      fetchEvents();
+      toast.info(targetEvent.archived ? "Pacote reativado com sucesso" : "Pacote arquivado com sucesso");
+    } catch (error) {
+      console.error("Erro ao atualizar status do pacote:", error);
+      toast.error("Não foi possível alterar o status do pacote");
+    }
+  };
+
   const renderCard = (event) => {
     return (
-      <Card key={event.id}>
+      <Card key={event.id} style={{ opacity: event.archived ? 0.6 : 1 }}>
         <div>
+          <StatusTag $archived={event.archived}>
+            {event.archived ? "Arquivado" : "Ativo"}
+          </StatusTag>
           <img src={event.imagem} alt={event.title} />
           <h1>{event.title}</h1>
           <p>{event.description}</p>
@@ -740,7 +829,10 @@ const Pacotes = ({ onBack }) => {
           >
             Editar
           </button>
-          <button className="excluir" onClick={() => setDeleteEventId(event.id)}>Excluir</button>
+          <button onClick={() => handleArchiveToggle(event)}>
+            {event.archived ? "Reativar" : "Arquivar"}
+          </button>
+          <button className="excluir" onClick={() => setDeleteTarget(event)}>Excluir</button>
         </article>
       </Card>
     );
@@ -786,10 +878,10 @@ const Pacotes = ({ onBack }) => {
           onCancel={() => setIsAdding(false)}
         />
       )}
-      {deleteEventId && (
+      {deleteTarget && (
         <ConfirmDeleteModal
-          onConfirm={() => handleDeleteConfirm(deleteEventId)}
-          onCancel={() => setDeleteEventId(null)}
+          onConfirm={handleDeleteConfirm}
+          onCancel={() => setDeleteTarget(null)}
         />
       )}
     </Content>
