@@ -338,14 +338,18 @@ const EditModal = ({ eventData, onSave, onCancel }) => {
     ...eventData,
     dataEntrada: initialDataEntrada,
     dataSaida: initialDataSaida,
+    dateRange: eventData.dateRange || "",
     features: initialFeatures
   });
 
-  // Calcula dinamicamente a string de período conforme os campos de data são preenchidos
-  const computedDateRange =
-    formValues.dataEntrada && formValues.dataSaida
-      ? formatCardDates(formValues.dataEntrada, formValues.dataSaida)
-      : "";
+  const { dataEntrada, dataSaida } = formValues;
+
+  useEffect(() => {
+    if (!dataEntrada || !dataSaida) return;
+    const newRange = formatCardDates(dataEntrada, dataSaida);
+    if (!newRange) return;
+    setFormValues((prev) => (prev.dateRange === newRange ? prev : { ...prev, dateRange: newRange }));
+  }, [dataEntrada, dataSaida]);
 
   const handleFieldChange = (e) => {
     const { name, value } = e.target;
@@ -372,16 +376,21 @@ const EditModal = ({ eventData, onSave, onCancel }) => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (!formValues.dataEntrada || !formValues.dataSaida) {
-      toast.error("Preencha as duas datas.");
+    const autoDateRange = formatCardDates(formValues.dataEntrada, formValues.dataSaida);
+    const finalDateRange = formValues.dateRange && formValues.dateRange.trim() !== ""
+      ? formValues.dateRange
+      : autoDateRange;
+
+    if (!finalDateRange) {
+      toast.error("Informe o período ou defina as datas.");
       return;
     }
-    const newDateRange = formatCardDates(formValues.dataEntrada, formValues.dataSaida);
+
     onSave({
       ...formValues,
-      dateRange: newDateRange,
-      dataEntrada: formValues.dataEntrada,
-      dataSaida: formValues.dataSaida
+      dateRange: finalDateRange,
+      dataEntrada: formValues.dataEntrada || "",
+      dataSaida: formValues.dataSaida || ""
     });
   };
 
@@ -464,8 +473,14 @@ const EditModal = ({ eventData, onSave, onCancel }) => {
           <label className="periodo">
             <span>Período</span>
             <InputContainer>
-              <input type="text" readOnly value={computedDateRange} />
-              {computedDateRange && computedDateRange.trim() !== "" && <CheckIconStyled size={16} />}
+              <input
+                type="text"
+                name="dateRange"
+                value={formValues.dateRange || ""}
+                onChange={handleFieldChange}
+                placeholder="dd/mm/aaaa até dd/mm/aaaa (X diárias)"
+              />
+              {formValues.dateRange && formValues.dateRange.trim() !== "" && <CheckIconStyled size={16} />}
             </InputContainer>
           </label>
           <label className="imagem">
