@@ -391,8 +391,20 @@ const EditModal = ({ eventData, onSave, onCancel }) => {
     dataEntrada: initialDataEntrada,
     dataSaida: initialDataSaida,
     archived: eventData.archived ?? false,
+    description: eventData.description || "",
     _collection: eventData._collection || PACKAGES_COLLECTION
   });
+
+  const { dataEntrada, dataSaida } = formValues;
+
+  useEffect(() => {
+    if (!dataEntrada || !dataSaida) return;
+    const autoDesc = formatCardDates(dataEntrada, dataSaida);
+    if (!autoDesc) return;
+    setFormValues((prev) =>
+      prev.description === autoDesc ? prev : { ...prev, description: autoDesc }
+    );
+  }, [dataEntrada, dataSaida]);
 
   // Atualiza os valores do formulário
   const handleFieldChange = (e) => {
@@ -416,26 +428,22 @@ const EditModal = ({ eventData, onSave, onCancel }) => {
     setFormValues({ ...formValues, suites: updatedSuites });
   };
 
-  // Computa a string de período conforme as datas são preenchidas
-  const computedDescription = (() => {
-    if (formValues.dataEntrada && formValues.dataSaida) {
-      return formatCardDates(formValues.dataEntrada, formValues.dataSaida);
-    }
-    return "";
-  })();
-
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (!formValues.dataEntrada || !formValues.dataSaida) {
-      toast.error("Preencha as duas datas.");
+    const autoDesc = formatCardDates(formValues.dataEntrada, formValues.dataSaida);
+    const finalDescription = formValues.description && formValues.description.trim() !== ""
+      ? formValues.description
+      : autoDesc;
+
+    if (!finalDescription) {
+      toast.error("Informe o período ou defina as datas.");
       return;
     }
-    const newDescription = computedDescription;
     onSave({
       ...formValues,
-      description: newDescription,
-      dataEntrada: formValues.dataEntrada,
-      dataSaida: formValues.dataSaida
+      description: finalDescription,
+      dataEntrada: formValues.dataEntrada || "",
+      dataSaida: formValues.dataSaida || ""
     });
   };
 
@@ -535,8 +543,14 @@ const EditModal = ({ eventData, onSave, onCancel }) => {
           <label className="periodo">
             <span>Período</span>
             <InputContainer>
-              <input type="text" readOnly value={computedDescription} />
-              {computedDescription && computedDescription.trim() !== "" && <CheckIconStyled size={16} />}
+              <input
+                type="text"
+                name="description"
+                value={formValues.description || ""}
+                onChange={handleFieldChange}
+                placeholder="dd/mm/aaaa até dd/mm/aaaa (X diárias)"
+              />
+              {formValues.description && formValues.description.trim() !== "" && <CheckIconStyled size={16} />}
             </InputContainer>
           </label>
           <label className="status">
