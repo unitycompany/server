@@ -33,7 +33,7 @@ const Card = styled.div`
   flex-direction: column;
   justify-content: center;
   gap: 15px;
-  min-width: 250px;
+  min-width: 320px;
   position: relative;
   transition: all 0.2s ease-in-out;
   ${props => props.cardFixo && `

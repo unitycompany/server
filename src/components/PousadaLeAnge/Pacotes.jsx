@@ -274,6 +274,94 @@ const AddButton = styled.button`
   font-size: 16px;
 `;
 
+const ViewToggleButton = styled.button`
+  margin-top: 20px;
+  padding: 5px 15px;
+  border: 2px solid #000;
+  background: ${(props) => (props.$active ? "#000" : "#fff")};
+  color: ${(props) => (props.$active ? "#fff" : "#000")};
+  cursor: pointer;
+  font-size: 16px;
+`;
+
+const ListContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+`;
+
+const ListRow = styled.div`
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  border: 1px solid #00000050;
+  padding: 8px 10px;
+  position: relative;
+  min-height: 96px;
+`;
+
+const ListMedia = styled.img`
+  width: 140px;
+  height: 80px;
+  object-fit: cover;
+  flex: 0 0 auto;
+`;
+
+const ListMain = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+  min-width: 0;
+
+  & h1 {
+    font-size: 20px;
+    line-height: 110%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  & p {
+    font-size: 14px;
+    line-height: 120%;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    overflow: hidden;
+  }
+
+  & span {
+    font-size: 12px;
+    line-height: 120%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+`;
+
+const ListActions = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
+  flex: 0 0 auto;
+
+  & button {
+    cursor: pointer;
+    padding: 4px 10px;
+    border: 1px solid #00000050;
+    font-size: 14px;
+    white-space: nowrap;
+  }
+
+  & button:nth-child(1) {
+    background-color: #000;
+    color: #fff;
+  }
+`;
+
 // Função para formatar uma data (objeto Date) como "dd/mm/aaaa"
 const formatDate = (date) => {
   if (!date) return "";
@@ -715,8 +803,47 @@ const Pacotes = ({ onBack }) => {
   const [editingEvent, setEditingEvent] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [isAdding, setIsAdding] = useState(false);
+  const [viewMode, setViewMode] = useState("card");
 
   const db = getDatabase("banco2");
+
+  const extractFirstDateBR = (text) => {
+    if (typeof text !== "string") return null;
+    const match = text.match(/\b\d{2}\/\d{2}\/\d{4}\b/);
+    return match ? match[0] : null;
+  };
+
+  const getSortDate = (item) => {
+    const primaryText = item?.description;
+    const extractedPrimary = extractFirstDateBR(primaryText);
+    if (extractedPrimary) {
+      const parsed = parseDateBR(extractedPrimary);
+      if (parsed) return parsed;
+    }
+
+    const fallback = item?.dataEntrada;
+    if (!fallback) return null;
+    if (fallback instanceof Date) return fallback;
+    if (typeof fallback === "string") return parseDateBR(fallback);
+    if (fallback && typeof fallback.toDate === "function") return fallback.toDate();
+    return null;
+  };
+
+  const sortByDateAsc = (a, b) => {
+    const dateA = getSortDate(a);
+    const dateB = getSortDate(b);
+    const timeA = dateA ? dateA.getTime() : Number.POSITIVE_INFINITY;
+    const timeB = dateB ? dateB.getTime() : Number.POSITIVE_INFINITY;
+    return timeA - timeB;
+  };
+
+  const sortActiveFirstThenDateAsc = (a, b) => {
+    const archivedA = Boolean(a?.archived);
+    const archivedB = Boolean(b?.archived);
+
+    if (archivedA !== archivedB) return archivedA ? 1 : -1;
+    return sortByDateAsc(a, b);
+  };
 
   const buildPackagePayload = (values, overrides = {}) => {
     const { id: _id, _collection, ...rest } = values;
@@ -743,7 +870,8 @@ const Pacotes = ({ onBack }) => {
         fetchCollectionData(PACKAGES_COLLECTION, false),
         fetchCollectionData(PACKAGES_ARCHIVE_COLLECTION, true),
       ]);
-      setEvents([...activeItems, ...archivedItems]);
+      const merged = [...activeItems, ...archivedItems];
+      setEvents(merged.sort(sortActiveFirstThenDateAsc));
     } catch (error) {
       console.error("Erro ao buscar pacotes:", error);
     } finally {
@@ -852,6 +980,37 @@ const Pacotes = ({ onBack }) => {
     );
   };
 
+  const renderListItem = (event) => {
+    return (
+      <ListRow key={event.id} style={{ opacity: event.archived ? 0.6 : 1 }}>
+        <StatusTag $archived={event.archived}>
+          {event.archived ? "Arquivado" : "Ativo"}
+        </StatusTag>
+        <ListMedia src={event.imagem} alt={event.title} />
+        <ListMain>
+          <h1>{event.title}</h1>
+          <p>{event.description}</p>
+          <span>{event.categorias}</span>
+        </ListMain>
+        <ListActions>
+          <button
+            className="editar"
+            onClick={() => {
+              setEditingEvent(event);
+              setIsAdding(false);
+            }}
+          >
+            Editar
+          </button>
+          <button onClick={() => handleArchiveToggle(event)}>
+            {event.archived ? "Reativar" : "Arquivar"}
+          </button>
+          <button className="excluir" onClick={() => setDeleteTarget(event)}>Excluir</button>
+        </ListActions>
+      </ListRow>
+    );
+  };
+
   return (
     <Content>
       <div style={{ marginBottom: "20px", display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -864,6 +1023,20 @@ const Pacotes = ({ onBack }) => {
         >
           Adicionar Pacote
         </AddButton>
+        <ViewToggleButton
+          type="button"
+          $active={viewMode === "card"}
+          onClick={() => setViewMode("card")}
+        >
+          Cards
+        </ViewToggleButton>
+        <ViewToggleButton
+          type="button"
+          $active={viewMode === "list"}
+          onClick={() => setViewMode("list")}
+        >
+          Lista
+        </ViewToggleButton>
         <AddButton
           style={{ padding: '5px 15px', background: '#fff', border: '2px solid #000', color: '#000', fontWeight: 500, cursor: 'pointer', fontSize: 16 }}
           onClick={onBack ? onBack : () => window.location.reload()}
@@ -875,7 +1048,11 @@ const Pacotes = ({ onBack }) => {
         <p>Carregando...</p>
       ) : (
         <>
-          <CardGrid>{events.map((event) => renderCard(event))}</CardGrid>
+          {viewMode === "card" ? (
+            <CardGrid>{events.map((event) => renderCard(event))}</CardGrid>
+          ) : (
+            <ListContainer>{events.map((event) => renderListItem(event))}</ListContainer>
+          )}
         </>
       )}
       {editingEvent && (
