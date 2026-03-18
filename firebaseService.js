@@ -1,4 +1,4 @@
-import { collection, addDoc, getDocs, deleteDoc, updateDoc, doc } from "firebase/firestore";
+import { collection, addDoc, getDocs, deleteDoc, updateDoc, doc, getDoc, setDoc, query, where } from "firebase/firestore";
 import { getDatabase } from "./firebaseConfig";
 
 // Função para obter todos os logins do banco de dados correto
@@ -102,5 +102,79 @@ export const removeAssinatura = async (dbName, assinaturaId) => {
         await deleteDoc(doc(db, "assinaturas", assinaturaId));
     } catch (error) {
         console.error("Erro ao remover assinatura:", error);
+    }
+};
+
+// =================== FUNÇÕES PARA USUÁRIOS (ROLES) ===================
+
+// Criar perfil de usuário no Firestore com role
+export const createUserProfile = async (uid, userData) => {
+    try {
+        const db = getDatabase("default");
+        if (!db) return;
+        await setDoc(doc(db, "usuarios", uid), {
+            ...userData,
+            createdAt: new Date().toISOString(),
+        });
+    } catch (error) {
+        console.error("Erro ao criar perfil de usuário:", error);
+        throw error;
+    }
+};
+
+// Buscar perfil de usuário pelo UID
+export const getUserProfile = async (uid) => {
+    try {
+        const db = getDatabase("default");
+        if (!db) return null;
+        const userDoc = await getDoc(doc(db, "usuarios", uid));
+        if (userDoc.exists()) {
+            return { id: userDoc.id, ...userDoc.data() };
+        }
+        return null;
+    } catch (error) {
+        console.error("Erro ao buscar perfil de usuário:", error);
+        return null;
+    }
+};
+
+// Buscar todos os usuários
+export const getAllUsers = async () => {
+    try {
+        const db = getDatabase("default");
+        if (!db) return [];
+        const querySnapshot = await getDocs(collection(db, "usuarios"));
+        return querySnapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+    } catch (error) {
+        console.error("Erro ao buscar usuários:", error);
+        return [];
+    }
+};
+
+// Atualizar dados de um usuário (role, nome, email, permissions, etc.)
+export const updateUserProfile = async (uid, data) => {
+    try {
+        const db = getDatabase("default");
+        if (!db) return;
+        const userRef = doc(db, "usuarios", uid);
+        await updateDoc(userRef, data);
+    } catch (error) {
+        console.error("Erro ao atualizar perfil do usuário:", error);
+        throw error;
+    }
+};
+
+// Alias para compatibilidade
+export const updateUserRole = updateUserProfile;
+
+// Remover usuário do Firestore
+export const deleteUserProfile = async (uid) => {
+    try {
+        const db = getDatabase("default");
+        if (!db) return;
+        await deleteDoc(doc(db, "usuarios", uid));
+    } catch (error) {
+        console.error("Erro ao remover perfil de usuário:", error);
+        throw error;
     }
 };

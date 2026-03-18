@@ -1,319 +1,537 @@
-// import React, { useState, useEffect } from "react";
-// import styled from "styled-components";
-// import CardUser from "../components/CardUser";
-// import { collection, getDocs, deleteDoc, doc, updateDoc, addDoc } from "firebase/firestore";
-// import { getDatabase } from "../../../firebaseConfig";
-// import { toast } from "react-toastify";
-// import "react-toastify/dist/ReactToastify.css";
+import React, { useState, useEffect } from "react";
+import styled from "styled-components";
+import { getAllUsers, updateUserProfile, deleteUserProfile, createUserProfile } from "../../firebaseService";
+import { useAuth } from "../../AuthContext";
+import { toast } from "react-toastify";
+import { createUserWithEmailAndPassword } from "firebase/auth";
+import { auth } from "../../firebaseConfig";
+import Modal from "react-modal";
+import {
+  FiShield, FiTrash2, FiEdit2, FiX, FiCheck, FiUserPlus, FiSearch, FiMail, FiUser
+} from "react-icons/fi";
 
-// const Content = styled.div`
-//   padding: 2.5%;
-//   display: flex;
-//   flex-direction: column;
-//   align-items: flex-start;
-//   justify-content: center;
-//   gap: 10px;
-//   width: 100%;
-//   overflow-y: auto;
-// `;
+Modal.setAppElement("#root");
 
-// const Top = styled.div`
-//   width: 100%;
-//   display: flex;
-//   align-items: center;
-//   justify-content: space-between;
-//   border-bottom: 1px solid #00000050;
-//   padding: 10px 0;
+const Container = styled.div`
+  padding: 30px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  overflow-y: auto;
+  max-height: 100vh;
+`;
 
-//   & button {
-//     padding: 5px 15px;
-//     background-color: #000000;
-//     border: 2px solid #727272;
-//     color: #fff;
-//     cursor: pointer;
-//     font-size: 14px;
-//     transition: all 0.2s ease;
+const Header = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
 
-//     &:hover {
-//       background-color: #ffffff;
-//       border-color: #000;
-//       color: #000;
-//     }
-//   }
-// `;
+  & h1 { font-size: 22px; font-weight: 600; }
+  & span { font-size: 13px; color: #9b9ba7; }
+`;
 
-// const Container = styled.div`
-//   display: flex;
-//   align-items: flex-start;
-//   justify-content: flex-start;
-//   width: 100%;
-//   gap: 10px;
-//   flex-wrap: wrap;
-// `;
+const HeaderActions = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 10px;
+`;
 
-// const ModalOverlay = styled.div`
-//   position: fixed;
-//   top: 0;
-//   left: 0;
-//   right: 0;
-//   bottom: 0;
-//   background: rgba(0, 0, 0, 0.5);
-//   display: flex;
-//   align-items: center;
-//   justify-content: center;
-//   z-index: 1000;
-// `;
+const SearchBox = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid #e0e0e3;
+  border-radius: 8px;
+  padding: 7px 10px;
 
-// const ModalContent = styled.div`
-//   background: #fff;
-//   padding: 30px;
-//   width: 90%;
-//   max-width: 600px;
-//   position: relative;
-//   max-height: 80vh;
-//   overflow: auto;
+  & svg { color: #9b9ba7; flex-shrink: 0; }
+  & input {
+    border: none;
+    outline: none;
+    font-size: 13px;
+    font-family: inherit;
+    width: 160px;
+  }
+`;
 
-//   & form {
-//     display: flex;
-//     flex-direction: column;
-//     gap: 20px;
-//     margin-top: 20px;
-    
-//     & label {
-//       display: flex;
-//       flex-direction: column;
-//       font-size: 14px;
-      
-//       & span {
-//         margin-bottom: 5px;
-//         font-weight: 600;
-//       }
-      
-//       & input {
-//         padding: 8px;
-//         font-size: 14px;
-//       }
-//     }
-//   }
-// `;
+const AddBtn = styled.button`
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: 8px;
+  border: none;
+  background: #111;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.15s;
 
-// const Buttons = styled.div`
-//   display: flex;
-//   gap: 10px;
+  &:hover { background: #333; }
+  & svg { flex-shrink: 0; }
+`;
 
-//   & button {
-//     padding: 5px 15px;
-//     background-color: #000;
-//     border: 2px solid #727272;
-//     color: #fff;
-//     cursor: pointer;
-//     font-size: 14px;
-//   }
-// `;
+const UsersGrid = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+`;
 
-// const AddButton = styled.button`
-//   margin-top: 20px;
-//   padding: 5px 15px;
-//   background-color: #34b600;
-//   border: 2px solid #000000;
-//   color: #fff;
-//   cursor: pointer;
-//   font-size: 16px;
-// `;
+const UserRow = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px;
+  border: 1px solid #e8e8eb;
+  border-radius: 10px;
+  transition: all 0.15s;
 
-// const UserModal = ({ userData, onSave, onCancel }) => {
-//   const [formValues, setFormValues] = useState({
-//     nome: userData?.nome || "",
-//     login: userData?.login || "",
-//     senha: userData?.senha || "",
-//     id: userData?.id || null
-//   });
+  &:hover {
+    border-color: #d0d0d5;
+    background: #fafafa;
+  }
+`;
 
-//   const handleChange = (e) => {
-//     const { name, value } = e.target;
-//     setFormValues((prev) => ({ ...prev, [name]: value }));
-//   };
+const UserInfo = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 12px;
+`;
 
-//   const handleSubmit = (e) => {
-//     e.preventDefault();
-//     onSave(formValues);
-//   };
+const Avatar = styled.div`
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: ${(p) => (p.$role === "admin" ? "#e0e7ff" : "#fef3c7")};
+  color: ${(p) => (p.$role === "admin" ? "#4f46e5" : "#d97706")};
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 700;
+  text-transform: uppercase;
+  flex-shrink: 0;
+`;
 
-//   return (
-//     <ModalOverlay>
-//       <ModalContent>
-//         <h2>{formValues.id ? "Editar Usuário" : "Adicionar Usuário"}</h2>
-//         <form onSubmit={handleSubmit}>
-//           <label>
-//             <span>Nome:</span>
-//             <input
-//               type="text"
-//               name="nome"
-//               value={formValues.nome}
-//               onChange={handleChange}
-//               placeholder="Nome do usuário"
-//             />
-//           </label>
-//           <label>
-//             <span>Login:</span>
-//             <input
-//               type="text"
-//               name="login"
-//               value={formValues.login}
-//               onChange={handleChange}
-//               placeholder="Email ou login"
-//             />
-//           </label>
-//           <label>
-//             <span>Senha:</span>
-//             <input
-//               type="password"
-//               name="senha"
-//               value={formValues.senha}
-//               onChange={handleChange}
-//               placeholder="Senha"
-//             />
-//           </label>
-//           <Buttons>
-//             <button type="submit">Salvar</button>
-//             <button type="button" onClick={onCancel}>Cancelar</button>
-//           </Buttons>
-//         </form>
-//       </ModalContent>
-//     </ModalOverlay>
-//   );
-// };
+const UserMeta = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 
-// const ConfirmDeleteModal = ({ onConfirm, onCancel }) => {
-//   return (
-//     <ModalOverlay>
-//       <ModalContent>
-//         <h2>Confirmar Exclusão</h2>
-//         <p>Tem certeza que deseja excluir este usuário?</p>
-//         <Buttons>
-//           <button onClick={onConfirm}>Confirmar</button>
-//           <button onClick={onCancel}>Cancelar</button>
-//         </Buttons>
-//       </ModalContent>
-//     </ModalOverlay>
-//   );
-// };
+  & strong { font-size: 14px; font-weight: 600; }
+  & span { font-size: 12px; color: #9b9ba7; }
+`;
 
-// const Usuarios = () => {
-//   const [users, setUsers] = useState([]);
-//   const [loading, setLoading] = useState(false);
-//   const [isAdding, setIsAdding] = useState(false);
-//   const [editingUser, setEditingUser] = useState(null);
-//   const [deleteUserId, setDeleteUserId] = useState(null);
+const Badge = styled.span`
+  font-size: 10px !important;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 2px 7px;
+  border-radius: 4px;
+  font-weight: 600 !important;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  width: fit-content;
+  background: ${(p) => (p.$role === "admin" ? "#e0e7ff" : "#fef3c7")};
+  color: ${(p) => (p.$role === "admin" ? "#4f46e5" : "#d97706")};
+`;
 
-//   const db = getDatabase("default");
+const Actions = styled.div`
+  display: flex;
+  gap: 6px;
+`;
 
-//   const fetchUsers = async () => {
-//     setLoading(true);
-//     try {
-//       const colRef = collection(db, "Usuarios");
-//       const snapshot = await getDocs(colRef);
-//       const items = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
-//       setUsers(items);
-//     } catch (error) {
-//       console.error("Erro ao buscar usuários:", error);
-//     } finally {
-//       setLoading(false);
-//     }
-//   };
+const IconBtn = styled.button`
+  background: none;
+  border: 1px solid #e8e8eb;
+  cursor: pointer;
+  padding: 7px 10px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  transition: all 0.15s;
+  font-family: inherit;
 
-//   useEffect(() => {
-//     fetchUsers();
-//   }, []);
+  &:hover { background: #f5f5f7; border-color: #d0d0d5; }
+  &.danger:hover { background: #fef2f2; border-color: #fca5a5; color: #dc2626; }
+`;
 
-//   const handleAddSave = async (newUser) => {
-//     try {
-//       await addDoc(collection(db, "Usuarios"), newUser);
-//       setIsAdding(false);
-//       fetchUsers();
-//       toast.success("Usuário adicionado com sucesso!");
-//     } catch (error) {
-//       console.error("Erro ao adicionar usuário:", error);
-//       toast.error("Erro ao adicionar usuário!");
-//     }
-//   };
+/* ─── Modal Styles ─── */
+const ModalOverlay = {
+  backgroundColor: "rgba(0, 0, 0, 0.4)",
+  zIndex: "100",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+};
 
-//   const handleEditSave = async (updatedUser) => {
-//     try {
-//       await updateDoc(doc(db, "Usuarios", updatedUser.id), updatedUser);
-//       setEditingUser(null);
-//       fetchUsers();
-//       toast.success("Usuário atualizado com sucesso!");
-//     } catch (error) {
-//       console.error("Erro ao atualizar usuário:", error);
-//       toast.error("Erro ao atualizar usuário!");
-//     }
-//   };
+const ModalBox = {
+  position: "relative",
+  inset: "unset",
+  margin: "auto",
+  width: "440px",
+  maxHeight: "90vh",
+  overflow: "auto",
+  borderRadius: "12px",
+  padding: "0",
+  border: "none",
+};
 
-//   const handleDeleteConfirm = async () => {
-//     try {
-//       await deleteDoc(doc(db, "Usuarios", deleteUserId));
-//       setDeleteUserId(null);
-//       fetchUsers();
-//       toast.warn("Usuário excluído com sucesso!");
-//     } catch (error) {
-//       console.error("Erro ao excluir usuário:", error);
-//       toast.error("Erro ao excluir usuário!");
-//     }
-//   };
+const ModalInner = styled.div`
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
 
-//   return (
-//     <Content>
-//       <Top>
-//         <h1>Controle de Usuários</h1>
-//         <button onClick={() => {
-//           setIsAdding(true);
-//           setEditingUser(null);
-//         }}>
-//           Adicionar novo usuário
-//         </button>
-//       </Top>
-//       {loading ? (
-//         <p>Carregando...</p>
-//       ) : (
-//         <Container>
-//           {users.map((user) => (
-//             <CardUser
-//               key={user.id}
-//               nome={user.nome}
-//               login={user.login}
-//               senha={user.senha}
-//               onEdit={() => {
-//                 setEditingUser(user);
-//                 setIsAdding(false);
-//               }}
-//               onDelete={() => setDeleteUserId(user.id)}
-//             />
-//           ))}
-//         </Container>
-//       )}
-//       {isAdding && (
-//         <UserModal
-//           userData={{}}
-//           onSave={handleAddSave}
-//           onCancel={() => setIsAdding(false)}
-//         />
-//       )}
-//       {editingUser && (
-//         <UserModal
-//           userData={editingUser}
-//           onSave={handleEditSave}
-//           onCancel={() => setEditingUser(null)}
-//         />
-//       )}
-//       {deleteUserId && (
-//         <ConfirmDeleteModal
-//           onConfirm={handleDeleteConfirm}
-//           onCancel={() => setDeleteUserId(null)}
-//         />
-//       )}
-//     </Content>
-//   );
-// };
+  & h2 {
+    font-size: 18px;
+    font-weight: 600;
+    margin: 0;
+    padding-bottom: 12px;
+    border-bottom: 1px solid #e8e8eb;
+  }
+`;
 
-// export default Usuarios;
+const FieldGroup = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+
+  & label {
+    font-size: 12px;
+    font-weight: 600;
+    color: #9b9ba7;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  & input, & select {
+    padding: 10px 12px;
+    border: 1px solid #e0e0e3;
+    border-radius: 8px;
+    font-size: 14px;
+    font-family: inherit;
+    transition: border-color 0.15s;
+
+    &:focus { outline: none; border-color: #111; }
+  }
+`;
+
+const ModalActions = styled.div`
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  padding-top: 8px;
+  border-top: 1px solid #e8e8eb;
+`;
+
+const ModalBtn = styled.button`
+  padding: 9px 20px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  font-family: inherit;
+  border: 1px solid #e0e0e3;
+  background: ${(p) => (p.$primary ? "#111" : "#fff")};
+  color: ${(p) => (p.$primary ? "#fff" : "#555")};
+  transition: all 0.15s;
+
+  &:hover {
+    background: ${(p) => (p.$primary ? "#333" : "#f5f5f7")};
+  }
+
+  &.danger {
+    background: #dc2626;
+    color: #fff;
+    border-color: #dc2626;
+    &:hover { background: #b91c1c; }
+  }
+`;
+
+const Usuarios = () => {
+  const [users, setUsers] = useState([]);
+  const [search, setSearch] = useState("");
+  const { userProfile } = useAuth();
+
+  // Modal states
+  const [editModal, setEditModal] = useState(false);
+  const [addModal, setAddModal] = useState(false);
+  const [deleteModal, setDeleteModal] = useState(false);
+
+  // Edit form
+  const [editData, setEditData] = useState({ id: "", nome: "", email: "", role: "franqueado" });
+
+  // Add form
+  const [newUser, setNewUser] = useState({ nome: "", email: "", senha: "", role: "franqueado" });
+
+  // Delete target
+  const [deleteTarget, setDeleteTarget] = useState(null);
+
+  const loadUsers = async () => {
+    const data = await getAllUsers();
+    setUsers(data);
+  };
+
+  useEffect(() => { loadUsers(); }, []);
+
+  const filtered = users.filter(
+    (u) =>
+      (u.nome || "").toLowerCase().includes(search.toLowerCase()) ||
+      (u.email || "").toLowerCase().includes(search.toLowerCase())
+  );
+
+  /* ─── Add User ─── */
+  const handleAddUser = async () => {
+    if (!newUser.nome || !newUser.email || !newUser.senha) {
+      toast.error("Preencha todos os campos.");
+      return;
+    }
+    try {
+      const cred = await createUserWithEmailAndPassword(auth, newUser.email, newUser.senha);
+      await createUserProfile(cred.user.uid, {
+        nome: newUser.nome,
+        email: newUser.email,
+        role: newUser.role,
+        permissions: [],
+      });
+      toast.success("Usuário criado com sucesso!");
+      setAddModal(false);
+      setNewUser({ nome: "", email: "", senha: "", role: "franqueado" });
+      loadUsers();
+    } catch (err) {
+      if (err.code === "auth/email-already-in-use") {
+        toast.error("Este e-mail já está em uso.");
+      } else {
+        toast.error("Erro ao criar usuário.");
+      }
+    }
+  };
+
+  /* ─── Edit User ─── */
+  const openEdit = (user) => {
+    setEditData({
+      id: user.id,
+      nome: user.nome || "",
+      email: user.email || "",
+      role: user.role || "franqueado",
+    });
+    setEditModal(true);
+  };
+
+  const handleSaveEdit = async () => {
+    try {
+      await updateUserProfile(editData.id, {
+        nome: editData.nome,
+        email: editData.email,
+        role: editData.role,
+      });
+      toast.success("Usuário atualizado!");
+      setEditModal(false);
+      loadUsers();
+    } catch {
+      toast.error("Erro ao atualizar.");
+    }
+  };
+
+  /* ─── Delete User ─── */
+  const openDelete = (user) => {
+    if (user.id === userProfile?.id) {
+      toast.error("Você não pode remover seu próprio perfil.");
+      return;
+    }
+    setDeleteTarget(user);
+    setDeleteModal(true);
+  };
+
+  const handleDelete = async () => {
+    try {
+      await deleteUserProfile(deleteTarget.id);
+      toast.success("Usuário removido!");
+      setDeleteModal(false);
+      setDeleteTarget(null);
+      loadUsers();
+    } catch {
+      toast.error("Erro ao remover.");
+    }
+  };
+
+  if (userProfile?.role !== "admin") {
+    return <Container><p>Você não tem permissão para acessar esta página.</p></Container>;
+  }
+
+  return (
+    <Container>
+      <Header>
+        <div>
+          <h1>Gerenciar Usuários</h1>
+          <span>{users.length} usuário(s) registrado(s)</span>
+        </div>
+        <HeaderActions>
+          <SearchBox>
+            <FiSearch size={14} />
+            <input
+              type="text"
+              placeholder="Buscar..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </SearchBox>
+          <AddBtn onClick={() => setAddModal(true)}>
+            <FiUserPlus size={14} /> Novo usuário
+          </AddBtn>
+        </HeaderActions>
+      </Header>
+
+      <UsersGrid>
+        {filtered.map((user) => {
+          const initials = (user.nome || user.email || "U").slice(0, 2);
+          return (
+            <UserRow key={user.id}>
+              <UserInfo>
+                <Avatar $role={user.role}>{initials}</Avatar>
+                <UserMeta>
+                  <strong>{user.nome || "Sem nome"}</strong>
+                  <span>{user.email}</span>
+                  <Badge $role={user.role}>
+                    <FiShield size={10} />
+                    {user.role || "franqueado"}
+                  </Badge>
+                </UserMeta>
+              </UserInfo>
+              <Actions>
+                <IconBtn onClick={() => openEdit(user)}>
+                  <FiEdit2 size={14} /> Editar
+                </IconBtn>
+                <IconBtn className="danger" onClick={() => openDelete(user)}>
+                  <FiTrash2 size={14} />
+                </IconBtn>
+              </Actions>
+            </UserRow>
+          );
+        })}
+      </UsersGrid>
+
+      {/* ─── Add Modal ─── */}
+      <Modal
+        isOpen={addModal}
+        onRequestClose={() => setAddModal(false)}
+        style={{ overlay: ModalOverlay, content: ModalBox }}
+      >
+        <ModalInner>
+          <h2>Novo Usuário</h2>
+          <FieldGroup>
+            <label>Nome</label>
+            <input
+              type="text"
+              value={newUser.nome}
+              onChange={(e) => setNewUser({ ...newUser, nome: e.target.value })}
+              placeholder="Nome completo"
+            />
+          </FieldGroup>
+          <FieldGroup>
+            <label>Email</label>
+            <input
+              type="email"
+              value={newUser.email}
+              onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
+              placeholder="email@exemplo.com"
+            />
+          </FieldGroup>
+          <FieldGroup>
+            <label>Senha</label>
+            <input
+              type="text"
+              value={newUser.senha}
+              onChange={(e) => setNewUser({ ...newUser, senha: e.target.value })}
+              placeholder="Mínimo 6 caracteres"
+            />
+          </FieldGroup>
+          <FieldGroup>
+            <label>Cargo</label>
+            <select
+              value={newUser.role}
+              onChange={(e) => setNewUser({ ...newUser, role: e.target.value })}
+            >
+              <option value="admin">Admin</option>
+              <option value="franqueado">Franqueado</option>
+            </select>
+          </FieldGroup>
+          <ModalActions>
+            <ModalBtn onClick={() => setAddModal(false)}>Cancelar</ModalBtn>
+            <ModalBtn $primary onClick={handleAddUser}>Criar usuário</ModalBtn>
+          </ModalActions>
+        </ModalInner>
+      </Modal>
+
+      {/* ─── Edit Modal ─── */}
+      <Modal
+        isOpen={editModal}
+        onRequestClose={() => setEditModal(false)}
+        style={{ overlay: ModalOverlay, content: ModalBox }}
+      >
+        <ModalInner>
+          <h2>Editar Usuário</h2>
+          <FieldGroup>
+            <label>Nome</label>
+            <input
+              type="text"
+              value={editData.nome}
+              onChange={(e) => setEditData({ ...editData, nome: e.target.value })}
+            />
+          </FieldGroup>
+          <FieldGroup>
+            <label>Email</label>
+            <input
+              type="email"
+              value={editData.email}
+              onChange={(e) => setEditData({ ...editData, email: e.target.value })}
+            />
+          </FieldGroup>
+          <FieldGroup>
+            <label>Cargo</label>
+            <select
+              value={editData.role}
+              onChange={(e) => setEditData({ ...editData, role: e.target.value })}
+            >
+              <option value="admin">Admin</option>
+              <option value="franqueado">Franqueado</option>
+            </select>
+          </FieldGroup>
+          <ModalActions>
+            <ModalBtn onClick={() => setEditModal(false)}>Cancelar</ModalBtn>
+            <ModalBtn $primary onClick={handleSaveEdit}>Salvar alterações</ModalBtn>
+          </ModalActions>
+        </ModalInner>
+      </Modal>
+
+      {/* ─── Delete Modal ─── */}
+      <Modal
+        isOpen={deleteModal}
+        onRequestClose={() => setDeleteModal(false)}
+        style={{ overlay: ModalOverlay, content: { ...ModalBox, width: "380px" } }}
+      >
+        <ModalInner>
+          <h2>Confirmar Exclusão</h2>
+          <p style={{ fontSize: 14, color: "#555", margin: 0 }}>
+            Tem certeza que deseja remover <strong>{deleteTarget?.nome || deleteTarget?.email}</strong>?
+            Esta ação não pode ser desfeita.
+          </p>
+          <ModalActions>
+            <ModalBtn onClick={() => setDeleteModal(false)}>Cancelar</ModalBtn>
+            <ModalBtn className="danger" onClick={handleDelete}>Excluir</ModalBtn>
+          </ModalActions>
+        </ModalInner>
+      </Modal>
+    </Container>
+  );
+};
+
+export default Usuarios;

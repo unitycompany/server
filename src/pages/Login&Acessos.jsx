@@ -641,6 +641,7 @@ const AcessoLogins = () => {
                 <option value="">Selecione uma empresa</option>
                 <option value="Unity">Unity</option>
                 <option value="Nova Metálica">Nova Metálica</option>
+                <option value="Steel Conecta">Steel Conecta</option>
                 <option value="Fast Sistemas Construtivos">Fast Sistemas Construtivos</option>
                 <option value="Fast Homes">Fast Homes</option>
                 <option value="Pousada Le Ange">Pousada Le Ange</option>
@@ -781,6 +782,7 @@ const AcessoLogins = () => {
                 <option value="">Selecione uma empresa</option>
                 <option value="Unity">Unity</option>
                 <option value="Nova Metálica">Nova Metálica</option>
+                <option value="Steel Conecta">Steel Conecta</option>
                 <option value="Fast Sistemas Construtivos">Fast Sistemas Construtivos</option>
                 <option value="Fast Homes">Fast Homes</option>
                 <option value="Pousada Le Ange">Pousada Le Ange</option>
