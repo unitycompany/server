@@ -51,7 +51,7 @@ const RightPanel = styled.div`
 const RightBgImage = styled.div`
   position: absolute;
   inset: 0;
-  background-image: url('/public/bg-home.jpg');
+  background-image: url('/bg-home.jpg');
   background-size: cover;
   background-position: center;
   z-index: 0;
@@ -373,7 +373,7 @@ const LoginView = ({ onSwitch, onLoginSuccess }) => {
 
   return (
     <FormWrapper key="login">
-      <Logo><img src="/public/logo-unity-company.svg" alt="Unity Company" /><span>Unity Company</span></Logo>
+      <Logo><img src="/logo-unity-company.svg" alt="Unity Company" /><span>Unity Company</span></Logo>
       <FormHeading>Bem-vindo de volta!</FormHeading>
       <FormDesc>
         Entre com suas credenciais para acessar o painel administrativo.
@@ -466,7 +466,7 @@ const RegisterView = ({ onSwitch, onLoginSuccess }) => {
 
   return (
     <FormWrapper key="register">
-      <Logo><img src="/public/logo-unity-company.svg" alt="Unity Company" /><span>Unity Company</span></Logo>
+      <Logo><img src="/logo-unity-company.svg" alt="Unity Company" /><span>Unity Company</span></Logo>
       <FormHeading>Criar conta</FormHeading>
       <FormDesc>
         Preencha seus dados para criar sua conta no painel.
@@ -556,7 +556,7 @@ const ForgotView = ({ onSwitch }) => {
 
   return (
     <FormWrapper key="forgot">
-      <Logo><img src="/public/logo-unity-company.svg" alt="Unity Company" /><span>Unity Company</span></Logo>
+      <Logo><img src="/logo-unity-company.svg" alt="Unity Company" /><span>Unity Company</span></Logo>
       <BackLink onClick={() => onSwitch("login")}>
         ← Voltar ao login
       </BackLink>
