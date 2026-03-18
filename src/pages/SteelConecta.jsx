@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useCallback } from "react";
 import styled from "styled-components";
 import CardLogin from "../components/CardLogin";
-import { getLogins, addLogin, removeLogin, editLogin } from "./../../firebaseService";
+import { getLogins, addLogin, removeLogin, editLogin, getAllUsers } from "./../../firebaseService";
+import { useAuth } from "./../../AuthContext";
 import Modal from "react-modal";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -170,19 +171,30 @@ const CardsContainer = styled.div`
 const ModalContent = styled.div`
   background: white;
   padding: 5px;
-  width: 400px;
+  width: 600px;
   display: flex;
   flex-direction: column;
   gap: 20px;
   outline: none;
   max-height: 90vh;
   overflow-y: auto;
+  & .modal-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+    & .full-width { grid-column: 1 / -1; }
+  }
   & .StyleGoogle {
     border: 1px solid #00000020;
     padding: 10px;
     display: flex;
     align-items: flex-start;
     justify-content: space-between;
+  }
+  & .checkboxes-row {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
   }
   & h2 {
     font-size: 18px;
@@ -282,6 +294,8 @@ const ModalExcluir = styled.div`
 const dbName = "default";
 
 const SteelConecta = () => {
+  const { userProfile } = useAuth();
+  const isAdmin = userProfile?.role === "admin";
   const [logins, setLogins] = useState([]);
   const [reload, setReload] = useState(false);
   const [modalAddIsOpen, setModalAddIsOpen] = useState(false);
@@ -289,6 +303,7 @@ const SteelConecta = () => {
   const [deleteModal, setDeleteModal] = useState(false);
   const [loginToDelete, setLoginToDelete] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [franqueados, setFranqueados] = useState([]);
 
   const [newLogin, setNewLogin] = useState({
     nomeSite: "",
@@ -300,6 +315,8 @@ const SteelConecta = () => {
     siteUrl: "",
     cursoLogin: false,
     cardFixo: false,
+    nomeFranqueado: "",
+    numeroFranqueado: "",
   });
 
   const [editLoginData, setEditLoginData] = useState({
@@ -312,17 +329,48 @@ const SteelConecta = () => {
     empresa: EMPRESA_FILTER,
     siteUrl: "",
     cardFixo: false,
+    nomeFranqueado: "",
+    numeroFranqueado: "",
   });
 
   const fetchLogins = useCallback(async () => {
     const data = await getLogins(dbName);
-    // Only show logins from Steel Conecta
     setLogins(data.filter((l) => l.empresa === EMPRESA_FILTER));
   }, []);
 
   useEffect(() => {
     fetchLogins();
   }, [fetchLogins, reload]);
+
+  // Buscar franqueados para o admin poder selecionar
+  useEffect(() => {
+    const loadFranqueados = async () => {
+      const users = await getAllUsers();
+      setFranqueados(users.filter((u) => u.role === "franqueado"));
+    };
+    if (isAdmin) loadFranqueados();
+  }, [isAdmin]);
+
+  // Auto-fill nome do franqueado ao abrir modal de criação (se for franqueado)
+  const openAddModal = () => {
+    setNewLogin((prev) => ({
+      ...prev,
+      nomeFranqueado: !isAdmin ? (userProfile?.nome || "") : "",
+      numeroFranqueado: "",
+    }));
+    setModalAddIsOpen(true);
+  };
+
+  const handleFranqueadoSelect = (userId, setter, data) => {
+    if (userId === "manual") {
+      setter({ ...data, nomeFranqueado: "", numeroFranqueado: "" });
+      return;
+    }
+    const franq = franqueados.find((f) => f.id === userId);
+    if (franq) {
+      setter({ ...data, nomeFranqueado: franq.nome || "", numeroFranqueado: franq.numero || "" });
+    }
+  };
 
   const filteredLogins = logins.filter((login) =>
     login.nomeSite.toLowerCase().includes(searchTerm.toLowerCase())
@@ -345,6 +393,7 @@ const SteelConecta = () => {
     setNewLogin({
       nomeSite: "", login: "", senha: "", obs: "", googleLogin: false,
       empresa: EMPRESA_FILTER, siteUrl: "", cursoLogin: false, cardFixo: false,
+      nomeFranqueado: "", numeroFranqueado: "",
     });
     setReload(!reload);
   };
@@ -361,6 +410,8 @@ const SteelConecta = () => {
       siteUrl: login.siteUrl || "",
       cursoLogin: login.cursoLogin || false,
       cardFixo: login.cardFixo || false,
+      nomeFranqueado: login.nomeFranqueado || "",
+      numeroFranqueado: login.numeroFranqueado || "",
     });
     setModalEditIsOpen(true);
   };
@@ -376,6 +427,8 @@ const SteelConecta = () => {
       siteUrl: editLoginData.siteUrl,
       cursoLogin: editLoginData.cursoLogin,
       cardFixo: editLoginData.cardFixo,
+      nomeFranqueado: editLoginData.nomeFranqueado,
+      numeroFranqueado: editLoginData.numeroFranqueado,
     };
     await editLogin(dbName, editLoginData.id, updatedData);
     toast.success("Login atualizado!");
@@ -406,7 +459,7 @@ const SteelConecta = () => {
         <h1>Steel Conecta</h1>
         <aside>
           <button onClick={() => setReload(!reload)}>Atualizar</button>
-          <button onClick={() => setModalAddIsOpen(true)}>Novo login</button>
+          <button onClick={openAddModal}>Novo login</button>
         </aside>
       </Top>
 
@@ -439,6 +492,8 @@ const SteelConecta = () => {
             className={login.cursoLogin ? "curso-card" : ""}
             cursoLogin={login.cursoLogin}
             cardFixo={login.cardFixo}
+            nomeFranqueado={login.nomeFranqueado}
+            numeroFranqueado={login.numeroFranqueado}
           />
         ))}
       </CardsContainer>
@@ -454,22 +509,48 @@ const SteelConecta = () => {
       >
         <ModalContent>
           <h2>Adicionar Novo Login</h2>
-          <label>
-            <span>Nome do Site:</span>
-            <input type="text" value={newLogin.nomeSite} onChange={(e) => setNewLogin({ ...newLogin, nomeSite: e.target.value })} onKeyDown={handleKeyPress} />
-          </label>
-          <label>
-            <span>URL do site</span>
-            <input type="text" value={newLogin.siteUrl || ""} onChange={(e) => setNewLogin({ ...newLogin, siteUrl: e.target.value })} placeholder="https://www.exemplo.com" onKeyDown={handleKeyPress} />
-          </label>
-          <label>
-            <span>Login:</span>
-            <input type="text" value={newLogin.login} onChange={(e) => setNewLogin({ ...newLogin, login: e.target.value })} onKeyDown={handleKeyPress} />
-          </label>
-          <label>
-            <span>Senha:</span>
-            <input type="text" value={newLogin.senha} onChange={(e) => setNewLogin({ ...newLogin, senha: e.target.value })} onKeyDown={handleKeyPress} />
-          </label>
+          <div className="modal-grid">
+            <label>
+              <span>Nome do Site:</span>
+              <input type="text" value={newLogin.nomeSite} onChange={(e) => setNewLogin({ ...newLogin, nomeSite: e.target.value })} onKeyDown={handleKeyPress} />
+            </label>
+            <label>
+              <span>URL do site</span>
+              <input type="text" value={newLogin.siteUrl || ""} onChange={(e) => setNewLogin({ ...newLogin, siteUrl: e.target.value })} placeholder="https://www.exemplo.com" onKeyDown={handleKeyPress} />
+            </label>
+            <label>
+              <span>Login:</span>
+              <input type="text" value={newLogin.login} onChange={(e) => setNewLogin({ ...newLogin, login: e.target.value })} onKeyDown={handleKeyPress} />
+            </label>
+            <label>
+              <span>Senha:</span>
+              <input type="text" value={newLogin.senha} onChange={(e) => setNewLogin({ ...newLogin, senha: e.target.value })} onKeyDown={handleKeyPress} />
+            </label>
+            <label>
+              <span>Nome do Franqueado:</span>
+              <input type="text" value={newLogin.nomeFranqueado} onChange={(e) => setNewLogin({ ...newLogin, nomeFranqueado: e.target.value })} onKeyDown={handleKeyPress} readOnly={!isAdmin && !!userProfile?.nome} />
+            </label>
+            <label>
+              <span>Número do Franqueado:</span>
+              <input type="text" value={newLogin.numeroFranqueado} onChange={(e) => setNewLogin({ ...newLogin, numeroFranqueado: e.target.value })} onKeyDown={handleKeyPress} placeholder="Ex: (11) 99999-9999" />
+            </label>
+            {isAdmin && (
+              <label className="full-width">
+                <span>Selecionar Franqueado:</span>
+                <select
+                  value=""
+                  onChange={(e) => handleFranqueadoSelect(e.target.value, setNewLogin, newLogin)}
+                  style={{ padding: "8px", fontSize: "14px" }}
+                >
+                  <option value="">-- Selecionar --</option>
+                  {franqueados.map((f) => (
+                    <option key={f.id} value={f.id}>{f.nome || f.email}</option>
+                  ))}
+                  <option value="manual">Digitar manualmente</option>
+                </select>
+              </label>
+            )}
+          </div>
           <div className="social-selection">
             {socialOptions.map((option) => (
               <div key={option.name} title={option.name} className={`social-icon ${newLogin.obs === option.name ? "selected" : ""}`} onClick={() => setNewLogin({ ...newLogin, obs: option.name })}>
@@ -477,26 +558,28 @@ const SteelConecta = () => {
               </div>
             ))}
           </div>
-          <div className="StyleGoogle">
-            <span>É necessário logar pelo Google?</span>
-            <CheckboxContainer>
-              <input type="checkbox" checked={newLogin.googleLogin} onChange={(e) => setNewLogin({ ...newLogin, googleLogin: e.target.checked })} />
-              <svg viewBox="0 0 64 64"><path d={checkboxSvgPath} pathLength="575.0541381835938" className="path"></path></svg>
-            </CheckboxContainer>
-          </div>
-          <div className="StyleGoogle">
-            <span>É um link de curso?</span>
-            <CheckboxContainer>
-              <input type="checkbox" checked={newLogin.cursoLogin || false} onChange={(e) => setNewLogin({ ...newLogin, cursoLogin: e.target.checked })} />
-              <svg viewBox="0 0 64 64"><path d={checkboxSvgPath} pathLength="575.0541381835938" className="path"></path></svg>
-            </CheckboxContainer>
-          </div>
-          <div className="StyleGoogle">
-            <span>É um card fixo?</span>
-            <CheckboxContainer>
-              <input type="checkbox" checked={newLogin.cardFixo || false} onChange={(e) => setNewLogin({ ...newLogin, cardFixo: e.target.checked })} />
-              <svg viewBox="0 0 64 64"><path d={checkboxSvgPath} pathLength="575.0541381835938" className="path"></path></svg>
-            </CheckboxContainer>
+          <div className="checkboxes-row">
+            <div className="StyleGoogle">
+              <span>Google?</span>
+              <CheckboxContainer>
+                <input type="checkbox" checked={newLogin.googleLogin} onChange={(e) => setNewLogin({ ...newLogin, googleLogin: e.target.checked })} />
+                <svg viewBox="0 0 64 64"><path d={checkboxSvgPath} pathLength="575.0541381835938" className="path"></path></svg>
+              </CheckboxContainer>
+            </div>
+            <div className="StyleGoogle">
+              <span>Curso?</span>
+              <CheckboxContainer>
+                <input type="checkbox" checked={newLogin.cursoLogin || false} onChange={(e) => setNewLogin({ ...newLogin, cursoLogin: e.target.checked })} />
+                <svg viewBox="0 0 64 64"><path d={checkboxSvgPath} pathLength="575.0541381835938" className="path"></path></svg>
+              </CheckboxContainer>
+            </div>
+            <div className="StyleGoogle">
+              <span>Fixo?</span>
+              <CheckboxContainer>
+                <input type="checkbox" checked={newLogin.cardFixo || false} onChange={(e) => setNewLogin({ ...newLogin, cardFixo: e.target.checked })} />
+                <svg viewBox="0 0 64 64"><path d={checkboxSvgPath} pathLength="575.0541381835938" className="path"></path></svg>
+              </CheckboxContainer>
+            </div>
           </div>
           <button onClick={handleAddLogin}>Criar login</button>
         </ModalContent>
@@ -516,22 +599,48 @@ const SteelConecta = () => {
             Editar Login{" "}
             {editLoginData.social && socialOptions.find((o) => o.name === editLoginData.social)?.icon}
           </h2>
-          <label>
-            <span>Nome do Site:</span>
-            <input type="text" value={editLoginData.nomeSite} onChange={(e) => setEditLoginData({ ...editLoginData, nomeSite: e.target.value })} />
-          </label>
-          <label>
-            <span>URL do site</span>
-            <input type="text" value={editLoginData.siteUrl || ""} onChange={(e) => setEditLoginData({ ...editLoginData, siteUrl: e.target.value })} placeholder="https://www.exemplo.com" onKeyDown={handleKeyPress} />
-          </label>
-          <label>
-            <span>Login:</span>
-            <input type="text" value={editLoginData.login} onChange={(e) => setEditLoginData({ ...editLoginData, login: e.target.value })} />
-          </label>
-          <label>
-            <span>Senha:</span>
-            <input type="text" value={editLoginData.senha} onChange={(e) => setEditLoginData({ ...editLoginData, senha: e.target.value })} />
-          </label>
+          <div className="modal-grid">
+            <label>
+              <span>Nome do Site:</span>
+              <input type="text" value={editLoginData.nomeSite} onChange={(e) => setEditLoginData({ ...editLoginData, nomeSite: e.target.value })} />
+            </label>
+            <label>
+              <span>URL do site</span>
+              <input type="text" value={editLoginData.siteUrl || ""} onChange={(e) => setEditLoginData({ ...editLoginData, siteUrl: e.target.value })} placeholder="https://www.exemplo.com" onKeyDown={handleKeyPress} />
+            </label>
+            <label>
+              <span>Login:</span>
+              <input type="text" value={editLoginData.login} onChange={(e) => setEditLoginData({ ...editLoginData, login: e.target.value })} />
+            </label>
+            <label>
+              <span>Senha:</span>
+              <input type="text" value={editLoginData.senha} onChange={(e) => setEditLoginData({ ...editLoginData, senha: e.target.value })} />
+            </label>
+            <label>
+              <span>Nome do Franqueado:</span>
+              <input type="text" value={editLoginData.nomeFranqueado} onChange={(e) => setEditLoginData({ ...editLoginData, nomeFranqueado: e.target.value })} onKeyDown={handleKeyPress} />
+            </label>
+            <label>
+              <span>Número do Franqueado:</span>
+              <input type="text" value={editLoginData.numeroFranqueado} onChange={(e) => setEditLoginData({ ...editLoginData, numeroFranqueado: e.target.value })} onKeyDown={handleKeyPress} placeholder="Ex: (11) 99999-9999" />
+            </label>
+            {isAdmin && (
+              <label className="full-width">
+                <span>Selecionar Franqueado:</span>
+                <select
+                  value=""
+                  onChange={(e) => handleFranqueadoSelect(e.target.value, setEditLoginData, editLoginData)}
+                  style={{ padding: "8px", fontSize: "14px" }}
+                >
+                  <option value="">-- Selecionar --</option>
+                  {franqueados.map((f) => (
+                    <option key={f.id} value={f.id}>{f.nome || f.email}</option>
+                  ))}
+                  <option value="manual">Digitar manualmente</option>
+                </select>
+              </label>
+            )}
+          </div>
           <div className="social-selection">
             {socialOptions.map((option) => (
               <div key={option.name} title={option.name} className={`social-icon ${editLoginData.social === option.name ? "selected" : ""}`} onClick={() => setEditLoginData({ ...editLoginData, social: option.name })}>
@@ -539,26 +648,28 @@ const SteelConecta = () => {
               </div>
             ))}
           </div>
-          <div className="StyleGoogle">
-            <span>É necessário logar pelo Google?</span>
-            <CheckboxContainer>
-              <input type="checkbox" checked={editLoginData.googleLogin} onChange={(e) => setEditLoginData({ ...editLoginData, googleLogin: e.target.checked })} />
-              <svg viewBox="0 0 64 64"><path d={checkboxSvgPath} pathLength="575.0541381835938" className="path"></path></svg>
-            </CheckboxContainer>
-          </div>
-          <div className="StyleGoogle">
-            <span>É um link de curso?</span>
-            <CheckboxContainer>
-              <input type="checkbox" checked={editLoginData.cursoLogin || false} onChange={(e) => setEditLoginData({ ...editLoginData, cursoLogin: e.target.checked })} />
-              <svg viewBox="0 0 64 64"><path d={checkboxSvgPath} pathLength="575.0541381835938" className="path"></path></svg>
-            </CheckboxContainer>
-          </div>
-          <div className="StyleGoogle">
-            <span>É um card fixo?</span>
-            <CheckboxContainer>
-              <input type="checkbox" checked={editLoginData.cardFixo || false} onChange={(e) => setEditLoginData({ ...editLoginData, cardFixo: e.target.checked })} />
-              <svg viewBox="0 0 64 64"><path d={checkboxSvgPath} pathLength="575.0541381835938" className="path"></path></svg>
-            </CheckboxContainer>
+          <div className="checkboxes-row">
+            <div className="StyleGoogle">
+              <span>Google?</span>
+              <CheckboxContainer>
+                <input type="checkbox" checked={editLoginData.googleLogin} onChange={(e) => setEditLoginData({ ...editLoginData, googleLogin: e.target.checked })} />
+                <svg viewBox="0 0 64 64"><path d={checkboxSvgPath} pathLength="575.0541381835938" className="path"></path></svg>
+              </CheckboxContainer>
+            </div>
+            <div className="StyleGoogle">
+              <span>Curso?</span>
+              <CheckboxContainer>
+                <input type="checkbox" checked={editLoginData.cursoLogin || false} onChange={(e) => setEditLoginData({ ...editLoginData, cursoLogin: e.target.checked })} />
+                <svg viewBox="0 0 64 64"><path d={checkboxSvgPath} pathLength="575.0541381835938" className="path"></path></svg>
+              </CheckboxContainer>
+            </div>
+            <div className="StyleGoogle">
+              <span>Fixo?</span>
+              <CheckboxContainer>
+                <input type="checkbox" checked={editLoginData.cardFixo || false} onChange={(e) => setEditLoginData({ ...editLoginData, cardFixo: e.target.checked })} />
+                <svg viewBox="0 0 64 64"><path d={checkboxSvgPath} pathLength="575.0541381835938" className="path"></path></svg>
+              </CheckboxContainer>
+            </div>
           </div>
           <button onClick={handleEditLogin}>Atualizar login</button>
         </ModalContent>

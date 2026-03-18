@@ -6,6 +6,13 @@ import { createUserProfile } from "../../firebaseService";
 import { toast } from "react-toastify";
 import { FiEye, FiEyeOff, FiArrowRight } from "react-icons/fi";
 
+const maskPhone = (value) => {
+  const digits = value.replace(/\D/g, "").slice(0, 11);
+  if (digits.length <= 2) return digits;
+  if (digits.length <= 7) return `(${digits.slice(0, 2)}) ${digits.slice(2)}`;
+  return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
+};
+
 // =================== ANIMATIONS ===================
 const fadeIn = keyframes`
   from { opacity: 0; transform: translateY(12px); }
@@ -394,6 +401,7 @@ const LoginView = ({ onSwitch, onLoginSuccess }) => {
 
 const RegisterView = ({ onSwitch, onLoginSuccess }) => {
   const [name, setName] = useState("");
+  const [numero, setNumero] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPw, setConfirmPw] = useState("");
@@ -419,6 +427,7 @@ const RegisterView = ({ onSwitch, onLoginSuccess }) => {
       await createUserProfile(cred.user.uid, {
         nome: name,
         email,
+        numero,
         role: "franqueado",
         permissions: [],
       });
@@ -456,6 +465,16 @@ const RegisterView = ({ onSwitch, onLoginSuccess }) => {
             onChange={(e) => setName(e.target.value)}
             required
             autoComplete="name"
+          />
+        </FieldGroup>
+        <FieldGroup>
+          <Label>Telefone</Label>
+          <Input
+            type="text"
+            placeholder="(00) 00000-0000"
+            value={numero}
+            onChange={(e) => setNumero(maskPhone(e.target.value))}
+            autoComplete="tel"
           />
         </FieldGroup>
         <FieldGroup>

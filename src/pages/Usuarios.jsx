@@ -7,10 +7,17 @@ import { createUserWithEmailAndPassword, signOut as firebaseSignOut } from "fire
 import { getSecondaryAuth } from "../../firebaseConfig";
 import Modal from "react-modal";
 import {
-  FiShield, FiTrash2, FiEdit2, FiX, FiCheck, FiUserPlus, FiSearch, FiMail, FiUser
+  FiShield, FiTrash2, FiEdit2, FiX, FiCheck, FiUserPlus, FiSearch, FiMail, FiUser, FiPhone
 } from "react-icons/fi";
 
 Modal.setAppElement("#root");
+
+const maskPhone = (value) => {
+  const digits = value.replace(/\D/g, "").slice(0, 11);
+  if (digits.length <= 2) return digits;
+  if (digits.length <= 7) return `(${digits.slice(0, 2)}) ${digits.slice(2)}`;
+  return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
+};
 
 const Container = styled.div`
   padding: 30px;
@@ -267,10 +274,10 @@ const Usuarios = () => {
   const [deleteModal, setDeleteModal] = useState(false);
 
   // Edit form
-  const [editData, setEditData] = useState({ id: "", nome: "", email: "", role: "franqueado" });
+  const [editData, setEditData] = useState({ id: "", nome: "", email: "", numero: "", role: "franqueado" });
 
   // Add form
-  const [newUser, setNewUser] = useState({ nome: "", email: "", senha: "", role: "franqueado" });
+  const [newUser, setNewUser] = useState({ nome: "", email: "", senha: "", numero: "", role: "franqueado" });
 
   // Delete target
   const [deleteTarget, setDeleteTarget] = useState(null);
@@ -300,6 +307,7 @@ const Usuarios = () => {
       await createUserProfile(cred.user.uid, {
         nome: newUser.nome,
         email: newUser.email,
+        numero: newUser.numero,
         role: newUser.role,
         permissions: [],
       });
@@ -307,7 +315,7 @@ const Usuarios = () => {
       await firebaseSignOut(secondaryAuth);
       toast.success("Usuário criado com sucesso!");
       setAddModal(false);
-      setNewUser({ nome: "", email: "", senha: "", role: "franqueado" });
+      setNewUser({ nome: "", email: "", senha: "", numero: "", role: "franqueado" });
       loadUsers();
     } catch (err) {
       if (err.code === "auth/email-already-in-use") {
@@ -324,6 +332,7 @@ const Usuarios = () => {
       id: user.id,
       nome: user.nome || "",
       email: user.email || "",
+      numero: user.numero || "",
       role: user.role || "franqueado",
     });
     setEditModal(true);
@@ -334,6 +343,7 @@ const Usuarios = () => {
       await updateUserProfile(editData.id, {
         nome: editData.nome,
         email: editData.email,
+        numero: editData.numero,
         role: editData.role,
       });
       toast.success("Usuário atualizado!");
@@ -403,6 +413,7 @@ const Usuarios = () => {
                 <UserMeta>
                   <strong>{user.nome || "Sem nome"}</strong>
                   <span>{user.email}</span>
+                  {user.numero && <span><FiPhone size={10} /> {user.numero}</span>}
                   <Badge $role={user.role}>
                     <FiShield size={10} />
                     {user.role || "franqueado"}
@@ -446,6 +457,15 @@ const Usuarios = () => {
               value={newUser.email}
               onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
               placeholder="email@exemplo.com"
+            />
+          </FieldGroup>
+          <FieldGroup>
+            <label>Telefone</label>
+            <input
+              type="text"
+              value={newUser.numero}
+              onChange={(e) => setNewUser({ ...newUser, numero: maskPhone(e.target.value) })}
+              placeholder="(00) 00000-0000"
             />
           </FieldGroup>
           <FieldGroup>
@@ -496,6 +516,15 @@ const Usuarios = () => {
               type="email"
               value={editData.email}
               onChange={(e) => setEditData({ ...editData, email: e.target.value })}
+            />
+          </FieldGroup>
+          <FieldGroup>
+            <label>Telefone</label>
+            <input
+              type="text"
+              value={editData.numero}
+              onChange={(e) => setEditData({ ...editData, numero: maskPhone(e.target.value) })}
+              placeholder="(00) 00000-0000"
             />
           </FieldGroup>
           <FieldGroup>

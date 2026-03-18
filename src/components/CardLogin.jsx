@@ -268,7 +268,9 @@ const CardLogin = ({
   googleLogin,
   siteUrl,
   cursoLogin,
-  cardFixo
+  cardFixo,
+  nomeFranqueado,
+  numeroFranqueado
 }) => {
   // Mapeia o nome da rede para o respectivo ícone
   const socialIcons = {
@@ -419,6 +421,12 @@ const CardLogin = ({
           </button>
         </p>
       </label>
+      {(nomeFranqueado || numeroFranqueado) && (
+        <article style={{ flexDirection: "column", alignItems: "flex-start", gap: "2px", borderTop: "1px solid #00000015", paddingTop: "5px" }}>
+          {nomeFranqueado && <span style={{ fontSize: "11px", color: "#555" }}>Franqueado: {nomeFranqueado}</span>}
+          {numeroFranqueado && <span style={{ fontSize: "11px", color: "#555" }}>Nº: {numeroFranqueado}</span>}
+        </article>
+      )}
       <div>
         <button onClick={onEdit}>Editar</button>
         <button onClick={onRemove}>Excluir</button>
