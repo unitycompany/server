@@ -47,6 +47,20 @@ const defaultApp =
 // Exporta o Auth da app padrão
 export const auth = getAuth(defaultApp);
 
+// Auth secundário para criar usuários sem deslogar o admin atual
+let _secondaryApp;
+function getSecondaryApp() {
+  if (!_secondaryApp) {
+    try {
+      _secondaryApp = getApp("secondary");
+    } catch {
+      _secondaryApp = initializeApp(firebaseConfigs.default, "secondary");
+    }
+  }
+  return _secondaryApp;
+}
+export const getSecondaryAuth = () => getAuth(getSecondaryApp());
+
 /**
  * Retorna a instância do Firestore para o dbName informado.
  * @param {string} dbName — “default” ou “banco3”

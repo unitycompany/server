@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import styled, { keyframes } from "styled-components";
-import { signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail, updateProfile } from "firebase/auth";
-import { auth } from "../../firebaseConfig";
+import { signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail, updateProfile, signOut as firebaseSignOut } from "firebase/auth";
+import { auth, getSecondaryAuth } from "../../firebaseConfig";
 import { createUserProfile } from "../../firebaseService";
 import { toast } from "react-toastify";
 import { FiEye, FiEyeOff, FiArrowRight } from "react-icons/fi";
@@ -258,44 +258,6 @@ const SubmitButton = styled.button`
   }
 `;
 
-const Divider = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  margin: 0.75rem 0;
-
-  &::before, &::after {
-    content: '';
-    flex: 1;
-    height: 1px;
-    background: #e2e8f0;
-  }
-
-  & span {
-    font-size: 0.75rem;
-    color: #94a3b8;
-    white-space: nowrap;
-  }
-`;
-
-const BottomText = styled.p`
-  text-align: center;
-  font-size: 0.82rem;
-  color: #94a3b8;
-  margin-top: 1.5rem;
-
-  & span {
-    color: #3b82f6;
-    font-weight: 600;
-    cursor: pointer;
-    transition: color 0.15s;
-
-    &:hover {
-      color: #2563eb;
-    }
-  }
-`;
-
 const BackLink = styled.span`
   display: inline-flex;
   align-items: center;
@@ -317,6 +279,24 @@ const PasswordHint = styled.p`
   margin-top: -4px;
 `;
 
+const BottomText = styled.p`
+  text-align: center;
+  font-size: 0.82rem;
+  color: #94a3b8;
+  margin-top: 1.5rem;
+
+  & span {
+    color: #3b82f6;
+    font-weight: 600;
+    cursor: pointer;
+    transition: color 0.15s;
+
+    &:hover {
+      color: #2563eb;
+    }
+  }
+`;
+
 const SuccessBox = styled.div`
   background: #f0fdf4;
   border: 1px solid #bbf7d0;
@@ -335,16 +315,6 @@ const SuccessBox = styled.div`
     font-size: 0.78rem;
     display: block;
     margin-top: 6px;
-  }
-`;
-
-const NameRow = styled.div`
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-
-  @media (max-width: 500px) {
-    grid-template-columns: 1fr;
   }
 `;
 
@@ -442,7 +412,9 @@ const RegisterView = ({ onSwitch, onLoginSuccess }) => {
     }
     setLoading(true);
     try {
-      const cred = await createUserWithEmailAndPassword(auth, email, password);
+      // Cria no Auth secundário para não afetar sessão de ninguém
+      const secondaryAuth = getSecondaryAuth();
+      const cred = await createUserWithEmailAndPassword(secondaryAuth, email, password);
       await updateProfile(cred.user, { displayName: name });
       await createUserProfile(cred.user.uid, {
         nome: name,
@@ -450,12 +422,15 @@ const RegisterView = ({ onSwitch, onLoginSuccess }) => {
         role: "franqueado",
         permissions: [],
       });
+      await firebaseSignOut(secondaryAuth);
+      // Agora faz login na auth principal
+      await signInWithEmailAndPassword(auth, email, password);
       localStorage.setItem("lastLogin", Date.now());
       toast.success("Conta criada com sucesso!");
-      onLoginSuccess(cred.user);
+      onLoginSuccess();
     } catch (error) {
       if (error.code === "auth/email-already-in-use") {
-        toast.error("Este e-mail já está em uso.");
+        toast.error("Este e-mail já está cadastrado. Tente fazer login.");
       } else {
         toast.error("Erro ao criar conta. Tente novamente.");
       }

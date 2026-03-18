@@ -3,8 +3,8 @@ import styled from "styled-components";
 import { getAllUsers, updateUserProfile, deleteUserProfile, createUserProfile } from "../../firebaseService";
 import { useAuth } from "../../AuthContext";
 import { toast } from "react-toastify";
-import { createUserWithEmailAndPassword } from "firebase/auth";
-import { auth } from "../../firebaseConfig";
+import { createUserWithEmailAndPassword, signOut as firebaseSignOut } from "firebase/auth";
+import { getSecondaryAuth } from "../../firebaseConfig";
 import Modal from "react-modal";
 import {
   FiShield, FiTrash2, FiEdit2, FiX, FiCheck, FiUserPlus, FiSearch, FiMail, FiUser
@@ -295,13 +295,16 @@ const Usuarios = () => {
       return;
     }
     try {
-      const cred = await createUserWithEmailAndPassword(auth, newUser.email, newUser.senha);
+      const secondaryAuth = getSecondaryAuth();
+      const cred = await createUserWithEmailAndPassword(secondaryAuth, newUser.email, newUser.senha);
       await createUserProfile(cred.user.uid, {
         nome: newUser.nome,
         email: newUser.email,
         role: newUser.role,
         permissions: [],
       });
+      // Deslogar da instância secundária para não afetar a sessão do admin
+      await firebaseSignOut(secondaryAuth);
       toast.success("Usuário criado com sucesso!");
       setAddModal(false);
       setNewUser({ nome: "", email: "", senha: "", role: "franqueado" });
