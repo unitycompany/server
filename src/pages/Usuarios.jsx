@@ -1,13 +1,16 @@
 import React, { useState, useEffect } from "react";
 import styled from "styled-components";
-import { getAllUsers, updateUserProfile, deleteUserProfile, createUserProfile } from "../../firebaseService";
-import { useAuth } from "../../AuthContext";
+import { getAllUsers, updateUserProfile, deleteUserProfile, createUserProfile, resetUserPin, setUserPin } from "../../firebaseService";
+import { useAuth, hasRole } from "../../AuthContext";
+import { useSecurity, hashPin } from "../SecurityContext";
+import PinModal from "../components/PinModal";
 import { toast } from "react-toastify";
 import { createUserWithEmailAndPassword, signOut as firebaseSignOut } from "firebase/auth";
 import { getSecondaryAuth } from "../../firebaseConfig";
 import Modal from "react-modal";
 import {
-  FiShield, FiTrash2, FiEdit2, FiX, FiCheck, FiUserPlus, FiSearch, FiMail, FiUser, FiPhone
+  FiShield, FiTrash2, FiEdit2, FiX, FiCheck, FiUserPlus, FiSearch, FiMail, FiUser, FiPhone,
+  FiEye, FiEyeOff, FiLock, FiUnlock, FiAlertTriangle
 } from "react-icons/fi";
 
 Modal.setAppElement("#root");
@@ -113,8 +116,8 @@ const Avatar = styled.div`
   width: 38px;
   height: 38px;
   border-radius: 50%;
-  background: ${(p) => (p.$role === "admin" ? "#e0e7ff" : "#fef3c7")};
-  color: ${(p) => (p.$role === "admin" ? "#4f46e5" : "#d97706")};
+  background: ${(p) => (p.$role === "superadmin" ? "#fce7f3" : p.$role === "admin" ? "#e0e7ff" : "#fef3c7")};
+  color: ${(p) => (p.$role === "superadmin" ? "#be185d" : p.$role === "admin" ? "#4f46e5" : "#d97706")};
   display: flex;
   align-items: center;
   justify-content: center;
@@ -144,8 +147,21 @@ const Badge = styled.span`
   align-items: center;
   gap: 4px;
   width: fit-content;
-  background: ${(p) => (p.$role === "admin" ? "#e0e7ff" : "#fef3c7")};
-  color: ${(p) => (p.$role === "admin" ? "#4f46e5" : "#d97706")};
+  background: ${(p) => (p.$role === "superadmin" ? "#fce7f3" : p.$role === "admin" ? "#e0e7ff" : "#fef3c7")};
+  color: ${(p) => (p.$role === "superadmin" ? "#be185d" : p.$role === "admin" ? "#4f46e5" : "#d97706")};
+`;
+
+const PinStatusBadge = styled.span`
+  font-size: 9px !important;
+  padding: 1px 5px;
+  border-radius: 3px;
+  font-weight: 600 !important;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  width: fit-content;
+  background: ${(p) => (p.$active ? "#d1fae5" : "#fef3c7")};
+  color: ${(p) => (p.$active ? "#065f46" : "#92400e")};
 `;
 
 const Actions = styled.div`
@@ -266,21 +282,35 @@ const ModalBtn = styled.button`
 const Usuarios = () => {
   const [users, setUsers] = useState([]);
   const [search, setSearch] = useState("");
-  const { userProfile } = useAuth();
+  const { userProfile, currentUser } = useAuth();
+  const { pinVerified, verifyPin } = useSecurity();
 
   // Modal states
   const [editModal, setEditModal] = useState(false);
   const [addModal, setAddModal] = useState(false);
   const [deleteModal, setDeleteModal] = useState(false);
 
+  // PIN modal states
+  const [pinModal, setPinModal] = useState(false);
+  const [pinAction, setPinAction] = useState(null); // { type: 'viewPin', userId: ... }
+  const [visiblePins, setVisiblePins] = useState({}); // { userId: true }
+
   // Edit form
   const [editData, setEditData] = useState({ id: "", nome: "", email: "", numero: "", role: "franqueado" });
 
   // Add form
-  const [newUser, setNewUser] = useState({ nome: "", email: "", senha: "", numero: "", role: "franqueado" });
+  const [newUser, setNewUser] = useState({ nome: "", email: "", senha: "", numero: "", role: "franqueado", pin: "" });
 
   // Delete target
   const [deleteTarget, setDeleteTarget] = useState(null);
+
+  // Change PIN modal
+  const [changePinModal, setChangePinModal] = useState(false);
+  const [changePinTarget, setChangePinTarget] = useState(null);
+  const [newPinValue, setNewPinValue] = useState("");
+
+  const isSuperAdmin = userProfile?.role === "superadmin";
+  const isAdmin = hasRole(userProfile?.role, "admin");
 
   const loadUsers = async () => {
     const data = await getAllUsers();
@@ -295,27 +325,71 @@ const Usuarios = () => {
       (u.email || "").toLowerCase().includes(search.toLowerCase())
   );
 
+  /* ─── PIN verification for sensitive actions ─── */
+  const requirePin = (action) => {
+    if (pinVerified) {
+      executeAction(action);
+      return;
+    }
+    setPinAction(action);
+    setPinModal(true);
+  };
+
+  const handlePinSubmit = async (pin) => {
+    const pinHashed = await hashPin(pin);
+    const myProfile = userProfile;
+    if (myProfile?.pinHash !== pinHashed) {
+      return false; // PIN incorreto
+    }
+    verifyPin();
+    setPinModal(false);
+    if (pinAction) executeAction(pinAction);
+    return true;
+  };
+
+  const executeAction = (action) => {
+    if (action?.type === "viewPin") {
+      setVisiblePins(prev => ({ ...prev, [action.userId]: true }));
+      setTimeout(() => {
+        setVisiblePins(prev => {
+          const copy = { ...prev };
+          delete copy[action.userId];
+          return copy;
+        });
+      }, 30000); // Esconde após 30 segundos
+    }
+  };
+
   /* ─── Add User ─── */
   const handleAddUser = async () => {
     if (!newUser.nome || !newUser.email || !newUser.senha) {
-      toast.error("Preencha todos os campos.");
+      toast.error("Preencha todos os campos obrigatórios.");
+      return;
+    }
+    if (newUser.pin && newUser.pin.length !== 4) {
+      toast.error("O PIN deve ter exatamente 4 dígitos.");
       return;
     }
     try {
       const secondaryAuth = getSecondaryAuth();
       const cred = await createUserWithEmailAndPassword(secondaryAuth, newUser.email, newUser.senha);
-      await createUserProfile(cred.user.uid, {
+      const profileData = {
         nome: newUser.nome,
         email: newUser.email,
         numero: newUser.numero,
         role: newUser.role,
         permissions: [],
-      });
-      // Deslogar da instância secundária para não afetar a sessão do admin
+      };
+      // Se definiu PIN no cadastro, salva o hash
+      if (newUser.pin) {
+        profileData.pinHash = await hashPin(newUser.pin);
+        profileData.pinSetAt = new Date().toISOString();
+      }
+      await createUserProfile(cred.user.uid, profileData);
       await firebaseSignOut(secondaryAuth);
       toast.success("Usuário criado com sucesso!");
       setAddModal(false);
-      setNewUser({ nome: "", email: "", senha: "", numero: "", role: "franqueado" });
+      setNewUser({ nome: "", email: "", senha: "", numero: "", role: "franqueado", pin: "" });
       loadUsers();
     } catch (err) {
       if (err.code === "auth/email-already-in-use") {
@@ -339,6 +413,11 @@ const Usuarios = () => {
   };
 
   const handleSaveEdit = async () => {
+    // Não permite que não-superadmin defina alguém como superadmin
+    if (editData.role === "superadmin" && !isSuperAdmin) {
+      toast.error("Apenas Super Admin pode promover a Super Admin.");
+      return;
+    }
     try {
       await updateUserProfile(editData.id, {
         nome: editData.nome,
@@ -360,6 +439,10 @@ const Usuarios = () => {
       toast.error("Você não pode remover seu próprio perfil.");
       return;
     }
+    if (user.role === "superadmin" && !isSuperAdmin) {
+      toast.error("Você não pode remover um Super Admin.");
+      return;
+    }
     setDeleteTarget(user);
     setDeleteModal(true);
   };
@@ -376,7 +459,65 @@ const Usuarios = () => {
     }
   };
 
-  if (userProfile?.role !== "admin") {
+  /* ─── Reset PIN (superadmin only) ─── */
+  const handleResetPin = async (userId) => {
+    if (!isSuperAdmin) {
+      toast.error("Apenas Super Admin pode resetar PINs.");
+      return;
+    }
+    try {
+      await resetUserPin(userId);
+      toast.success("PIN resetado! O usuário precisará definir um novo PIN no próximo login.");
+      loadUsers();
+    } catch {
+      toast.error("Erro ao resetar PIN.");
+    }
+  };
+
+  /* ─── Change PIN (superadmin only) ─── */
+  const openChangePin = (user) => {
+    setChangePinTarget(user);
+    setNewPinValue("");
+    setChangePinModal(true);
+  };
+
+  const handleChangePin = async () => {
+    if (!isSuperAdmin) {
+      toast.error("Apenas Super Admin pode alterar PINs.");
+      return;
+    }
+    if (newPinValue.length !== 4) {
+      toast.error("O PIN deve ter exatamente 4 dígitos.");
+      return;
+    }
+    try {
+      const pinHashed = await hashPin(newPinValue);
+      await setUserPin(changePinTarget.id, pinHashed);
+      toast.success(`PIN de ${changePinTarget.nome || changePinTarget.email} alterado com sucesso!`);
+      setChangePinModal(false);
+      setChangePinTarget(null);
+      setNewPinValue("");
+      loadUsers();
+    } catch {
+      toast.error("Erro ao alterar PIN.");
+    }
+  };
+
+  // Disponibiliza as roles baseadas na role do usuário logado
+  const availableRoles = () => {
+    if (isSuperAdmin) return ["superadmin", "admin", "franqueado"];
+    return ["admin", "franqueado"];
+  };
+
+  const getRoleLabel = (role) => {
+    switch (role) {
+      case "superadmin": return "Super Admin";
+      case "admin": return "Admin";
+      default: return "Franqueado";
+    }
+  };
+
+  if (!isAdmin) {
     return <Container><p>Você não tem permissão para acessar esta página.</p></Container>;
   }
 
@@ -414,13 +555,37 @@ const Usuarios = () => {
                   <strong>{user.nome || "Sem nome"}</strong>
                   <span>{user.email}</span>
                   {user.numero && <span><FiPhone size={10} /> {user.numero}</span>}
-                  <Badge $role={user.role}>
-                    <FiShield size={10} />
-                    {user.role || "franqueado"}
-                  </Badge>
+                  <div style={{ display: "flex", gap: "4px", alignItems: "center", flexWrap: "wrap" }}>
+                    <Badge $role={user.role}>
+                      <FiShield size={10} />
+                      {getRoleLabel(user.role)}
+                    </Badge>
+                    <PinStatusBadge $active={!!user.pinHash}>
+                      {user.pinHash ? <><FiLock size={8} /> PIN</> : <><FiUnlock size={8} /> Sem PIN</>}
+                    </PinStatusBadge>
+                  </div>
                 </UserMeta>
               </UserInfo>
               <Actions>
+                {isSuperAdmin && (
+                  <>
+                    <IconBtn
+                      onClick={() => openChangePin(user)}
+                      title="Alterar PIN do usuário"
+                    >
+                      <FiLock size={14} /> {user.pinHash ? "Alterar PIN" : "Definir PIN"}
+                    </IconBtn>
+                    {user.pinHash && (
+                      <IconBtn
+                        className="danger"
+                        onClick={() => handleResetPin(user.id)}
+                        title="Resetar PIN (usuário terá que redefinir no login)"
+                      >
+                        <FiAlertTriangle size={14} /> Reset
+                      </IconBtn>
+                    )}
+                  </>
+                )}
                 <IconBtn onClick={() => openEdit(user)}>
                   <FiEdit2 size={14} /> Editar
                 </IconBtn>
@@ -478,13 +643,25 @@ const Usuarios = () => {
             />
           </FieldGroup>
           <FieldGroup>
+            <label>PIN de Segurança (opcional)</label>
+            <input
+              type="text"
+              inputMode="numeric"
+              maxLength={4}
+              value={newUser.pin}
+              onChange={(e) => setNewUser({ ...newUser, pin: e.target.value.replace(/\D/g, "").slice(0, 4) })}
+              placeholder="4 dígitos (pode definir depois)"
+            />
+          </FieldGroup>
+          <FieldGroup>
             <label>Cargo</label>
             <select
               value={newUser.role}
               onChange={(e) => setNewUser({ ...newUser, role: e.target.value })}
             >
-              <option value="admin">Admin</option>
-              <option value="franqueado">Franqueado</option>
+              {availableRoles().map(r => (
+                <option key={r} value={r}>{getRoleLabel(r)}</option>
+              ))}
             </select>
           </FieldGroup>
           <ModalActions>
@@ -533,8 +710,9 @@ const Usuarios = () => {
               value={editData.role}
               onChange={(e) => setEditData({ ...editData, role: e.target.value })}
             >
-              <option value="admin">Admin</option>
-              <option value="franqueado">Franqueado</option>
+              {availableRoles().map(r => (
+                <option key={r} value={r}>{getRoleLabel(r)}</option>
+              ))}
             </select>
           </FieldGroup>
           <ModalActions>
@@ -562,6 +740,50 @@ const Usuarios = () => {
           </ModalActions>
         </ModalInner>
       </Modal>
+
+      {/* ─── Change PIN Modal (superadmin) ─── */}
+      <Modal
+        isOpen={changePinModal}
+        onRequestClose={() => setChangePinModal(false)}
+        style={{ overlay: ModalOverlay, content: { ...ModalBox, width: "380px" } }}
+      >
+        <ModalInner>
+          <h2><FiLock size={16} style={{ marginRight: 6 }} />
+            {changePinTarget?.pinHash ? "Alterar" : "Definir"} PIN
+          </h2>
+          <p style={{ fontSize: 13, color: "#555", margin: 0 }}>
+            {changePinTarget?.pinHash ? "Definir novo" : "Criar"} PIN de 4 dígitos para{" "}
+            <strong>{changePinTarget?.nome || changePinTarget?.email}</strong>.
+          </p>
+          <FieldGroup>
+            <label>Novo PIN (4 dígitos)</label>
+            <input
+              type="text"
+              inputMode="numeric"
+              maxLength={4}
+              value={newPinValue}
+              onChange={(e) => setNewPinValue(e.target.value.replace(/\D/g, "").slice(0, 4))}
+              placeholder="0000"
+              style={{ fontSize: 20, textAlign: "center", letterSpacing: 12 }}
+            />
+          </FieldGroup>
+          <ModalActions>
+            <ModalBtn onClick={() => setChangePinModal(false)}>Cancelar</ModalBtn>
+            <ModalBtn $primary onClick={handleChangePin} disabled={newPinValue.length !== 4}>
+              Salvar PIN
+            </ModalBtn>
+          </ModalActions>
+        </ModalInner>
+      </Modal>
+
+      {/* ─── PIN Modal ─── */}
+      <PinModal
+        isOpen={pinModal}
+        onSubmit={handlePinSubmit}
+        onCancel={() => { setPinModal(false); setPinAction(null); }}
+        title="Autenticação Requerida"
+        description="Digite seu PIN para acessar informações sensíveis."
+      />
     </Container>
   );
 };

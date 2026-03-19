@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from "react";
 import styled from "styled-components";
-import { useAuth } from "../../AuthContext";
+import { useAuth, hasRole } from "../../AuthContext";
 import { signOut } from "firebase/auth";
 import { auth } from "../../firebaseConfig";
-import { updateUserProfile } from "../../firebaseService";
+import { updateUserProfile, setUserPin, getUserPinHash } from "../../firebaseService";
+import { useSecurity, hashPin } from "../SecurityContext";
 import AcessoLogins from "../pages/Login&Acessos";
 import Usuarios from "../pages/Usuarios";
 import SteelConecta from "../pages/SteelConecta";
@@ -15,7 +16,7 @@ import NovaMetalica from "../pages/BC/novametalica";
 import Assinaturas from "../pages/Assinaturas";
 import {
   FiKey, FiUsers, FiShield, FiSettings,
-  FiDollarSign, FiExternalLink, FiEdit2, FiX, FiCheck,
+  FiDollarSign, FiExternalLink, FiEdit2, FiX, FiCheck, FiLock,
 } from "react-icons/fi";
 import { HiOutlineBuildingOffice2 } from "react-icons/hi2";
 
@@ -168,8 +169,8 @@ const UserAvatar = styled.div`
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  background: ${(p) => (p.$role === "admin" ? "#e0e7ff" : "#fef3c7")};
-  color: ${(p) => (p.$role === "admin" ? "#4f46e5" : "#d97706")};
+  background: ${(p) => (p.$role === "superadmin" ? "#fce7f3" : p.$role === "admin" ? "#e0e7ff" : "#fef3c7")};
+  color: ${(p) => (p.$role === "superadmin" ? "#be185d" : p.$role === "admin" ? "#4f46e5" : "#d97706")};
   display: flex;
   align-items: center;
   justify-content: center;
@@ -254,8 +255,8 @@ const ProfileAvatar = styled.div`
   width: 56px;
   height: 56px;
   border-radius: 50%;
-  background: ${(p) => (p.$role === "admin" ? "#e0e7ff" : "#fef3c7")};
-  color: ${(p) => (p.$role === "admin" ? "#4f46e5" : "#d97706")};
+  background: ${(p) => (p.$role === "superadmin" ? "#fce7f3" : p.$role === "admin" ? "#e0e7ff" : "#fef3c7")};
+  color: ${(p) => (p.$role === "superadmin" ? "#be185d" : p.$role === "admin" ? "#4f46e5" : "#d97706")};
   display: flex;
   align-items: center;
   justify-content: center;
@@ -289,8 +290,8 @@ const ProfileRoleBadge = styled.span`
   font-weight: 600;
   width: fit-content;
   margin-top: 4px;
-  background: ${(p) => (p.$role === "admin" ? "#e0e7ff" : "#fef3c7")};
-  color: ${(p) => (p.$role === "admin" ? "#4f46e5" : "#d97706")};
+  background: ${(p) => (p.$role === "superadmin" ? "#fce7f3" : p.$role === "admin" ? "#e0e7ff" : "#fef3c7")};
+  color: ${(p) => (p.$role === "superadmin" ? "#be185d" : p.$role === "admin" ? "#4f46e5" : "#d97706")};
 `;
 
 const ProfileField = styled.div`
@@ -365,15 +366,15 @@ const menuConfig = [
   {
     section: "Menu",
     items: [
-      { title: "Logins e acessos", icon: <FiKey />, roles: ["admin"] },
-      { title: "Assinaturas", icon: <FiDollarSign />, roles: ["admin"] },
-      { title: "Gerenciar usuários", icon: <FiUsers />, roles: ["admin"] },
+      { title: "Logins e acessos", icon: <FiKey />, roles: ["superadmin", "admin"] },
+      { title: "Assinaturas", icon: <FiDollarSign />, roles: ["superadmin", "admin"] },
+      { title: "Gerenciar usuários", icon: <FiUsers />, roles: ["superadmin", "admin"] },
     ],
   },
   {
     section: "Steel Conecta",
     items: [
-      { title: "Steel Conecta", icon: <HiOutlineBuildingOffice2 />, roles: ["admin", "franqueado"] },
+      { title: "Steel Conecta", icon: <HiOutlineBuildingOffice2 />, roles: ["superadmin", "admin", "franqueado"] },
     ],
   },
   {
@@ -382,12 +383,12 @@ const menuConfig = [
       {
         title: "Pousada Le Ange",
         icon: <img src="https://imagedelivery.net/1n9Gwvykoj9c9m8C_4GsGA/eb648853-1763-415e-491c-e162bad01800/public" alt="" />,
-        roles: ["admin"],
+        roles: ["superadmin", "admin"],
       },
       {
         title: "Fast Homes",
         icon: <img src="https://imagedelivery.net/1n9Gwvykoj9c9m8C_4GsGA/8ce698f2-4801-4660-4282-aac5cbde5200/public" alt="" />,
-        roles: ["admin"],
+        roles: ["superadmin", "admin"],
       },
     ],
   },
@@ -397,7 +398,7 @@ const menuConfig = [
       {
         title: "Relatório pré-vendas",
         icon: <FiExternalLink />,
-        roles: ["admin"],
+        roles: ["superadmin", "admin"],
         external: "https://relatorio.fastsistemasconstrutivos.com.br",
       },
     ],
@@ -414,6 +415,49 @@ const componentMap = {
   "Nova Metálica": <NovaMetalica />,
 };
 
+/* ─── PIN Change Styled ─── */
+const PinChangeSection = styled.div`
+  margin-top: 16px;
+  padding: 16px;
+  border: 1px solid #e0e0e3;
+  border-radius: 10px;
+  background: #fafafa;
+`;
+
+const PinChangeTitle = styled.h3`
+  font-size: 14px;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+`;
+
+const PinInputRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+
+  label {
+    font-size: 13px;
+    color: #666;
+    min-width: 120px;
+  }
+
+  input {
+    width: 120px;
+    padding: 8px 10px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 14px;
+    font-family: monospace;
+    letter-spacing: 4px;
+    text-align: center;
+  }
+`;
+
 /* ─── Profile Component ─── */
 const MeuPerfil = () => {
   const { currentUser, userProfile, refreshProfile } = useAuth();
@@ -422,6 +466,13 @@ const MeuPerfil = () => {
   const [email] = useState(userProfile?.email || currentUser?.email || "");
   const role = userProfile?.role || "franqueado";
   const initials = (userProfile?.nome || currentUser?.email || "U").slice(0, 2);
+
+  /* PIN change state */
+  const [changingPin, setChangingPin] = useState(false);
+  const [currentPin, setCurrentPin] = useState("");
+  const [newPin, setNewPin] = useState("");
+  const [confirmPin, setConfirmPin] = useState("");
+  const [pinLoading, setPinLoading] = useState(false);
 
   useEffect(() => {
     setNome(userProfile?.nome || "");
@@ -438,6 +489,42 @@ const MeuPerfil = () => {
     }
   };
 
+  const resetPinFields = () => {
+    setCurrentPin("");
+    setNewPin("");
+    setConfirmPin("");
+    setChangingPin(false);
+  };
+
+  const handleChangePin = async () => {
+    if (currentPin.length !== 4 || newPin.length !== 4 || confirmPin.length !== 4) {
+      toast.error("Todos os campos devem ter 4 dígitos.");
+      return;
+    }
+    if (newPin !== confirmPin) {
+      toast.error("Novo PIN e confirmação não coincidem.");
+      return;
+    }
+    setPinLoading(true);
+    try {
+      const storedHash = await getUserPinHash(currentUser.uid);
+      const currentHash = await hashPin(currentPin);
+      if (currentHash !== storedHash) {
+        toast.error("PIN atual incorreto.");
+        setPinLoading(false);
+        return;
+      }
+      const newHash = await hashPin(newPin);
+      await setUserPin(currentUser.uid, newHash);
+      toast.success("PIN alterado com sucesso!");
+      resetPinFields();
+    } catch {
+      toast.error("Erro ao alterar PIN.");
+    } finally {
+      setPinLoading(false);
+    }
+  };
+
   return (
     <ProfilePanel>
       <ProfileHeader>
@@ -447,7 +534,7 @@ const MeuPerfil = () => {
           <span>{email}</span>
           <br />
           <ProfileRoleBadge $role={role}>
-            <FiShield size={11} /> {role}
+            <FiShield size={11} /> {role === "superadmin" ? "Super Admin" : role}
           </ProfileRoleBadge>
         </ProfileInfo>
       </ProfileHeader>
@@ -496,11 +583,60 @@ const MeuPerfil = () => {
             </ProfileBtn>
           </>
         ) : (
-          <ProfileBtn onClick={() => setEditing(true)}>
-            <FiEdit2 size={14} /> Editar perfil
-          </ProfileBtn>
+          <>
+            <ProfileBtn onClick={() => setEditing(true)}>
+              <FiEdit2 size={14} /> Editar perfil
+            </ProfileBtn>
+            <ProfileBtn onClick={() => setChangingPin((v) => !v)}>
+              <FiLock size={14} /> {changingPin ? "Cancelar" : "Alterar PIN"}
+            </ProfileBtn>
+          </>
         )}
       </ProfileActions>
+
+      {changingPin && (
+        <PinChangeSection>
+          <PinChangeTitle><FiLock size={14} /> Alterar PIN</PinChangeTitle>
+          <PinInputRow>
+            <label>PIN atual</label>
+            <input
+              type="password"
+              maxLength={4}
+              value={currentPin}
+              onChange={(e) => setCurrentPin(e.target.value.replace(/\D/g, ""))}
+              placeholder="••••"
+            />
+          </PinInputRow>
+          <PinInputRow>
+            <label>Novo PIN</label>
+            <input
+              type="password"
+              maxLength={4}
+              value={newPin}
+              onChange={(e) => setNewPin(e.target.value.replace(/\D/g, ""))}
+              placeholder="••••"
+            />
+          </PinInputRow>
+          <PinInputRow>
+            <label>Confirmar PIN</label>
+            <input
+              type="password"
+              maxLength={4}
+              value={confirmPin}
+              onChange={(e) => setConfirmPin(e.target.value.replace(/\D/g, ""))}
+              placeholder="••••"
+            />
+          </PinInputRow>
+          <ProfileActions>
+            <ProfileBtn $primary onClick={handleChangePin} disabled={pinLoading}>
+              <FiCheck size={14} /> {pinLoading ? "Salvando..." : "Salvar PIN"}
+            </ProfileBtn>
+            <ProfileBtn onClick={resetPinFields}>
+              <FiX size={14} /> Cancelar
+            </ProfileBtn>
+          </ProfileActions>
+        </PinChangeSection>
+      )}
     </ProfilePanel>
   );
 };
@@ -508,6 +644,7 @@ const MeuPerfil = () => {
 /* ─── Homepage ─── */
 const Homepage = () => {
   const { currentUser, userProfile } = useAuth();
+  const { clearPinSession } = useSecurity();
   const userRole = userProfile?.role || "franqueado";
   const initials = (userProfile?.nome || currentUser?.email || "U").slice(0, 2);
 
@@ -529,6 +666,7 @@ const Homepage = () => {
 
   const handleLogout = async () => {
     try {
+      clearPinSession();
       await signOut(auth);
       localStorage.removeItem("lastLogin");
       toast.success("Logout realizado com sucesso!");
@@ -589,7 +727,7 @@ const Homepage = () => {
             <UserAvatar $role={userRole}>{initials}</UserAvatar>
             <UserMeta>
               <p>{userProfile?.nome || currentUser?.email}</p>
-              <span>{userRole}</span>
+              <span>{userRole === "superadmin" ? "Super Admin" : userRole}</span>
             </UserMeta>
           </UserButton>
         </SidebarFooter>

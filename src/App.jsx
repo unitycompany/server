@@ -5,10 +5,12 @@ import Homepage from "./partials/Homepage";
 import Login from "./partials/Login";
 import { ToastContainer } from "react-toastify";
 import { AuthProvider, useAuth } from "../AuthContext";
+import { SecurityProvider } from "./SecurityContext";
+import { PinSetup } from "./components/PinModal";
 import "react-toastify/dist/ReactToastify.css";
 
 const AuthenticatedApp = () => {
-  const { currentUser, loading } = useAuth();
+  const { currentUser, loading, needsPinSetup, completePinSetup, userProfile } = useAuth();
   const [showLogin, setShowLogin] = useState(true);
 
   useEffect(() => {
@@ -24,9 +26,22 @@ const AuthenticatedApp = () => {
     }
   }, [currentUser, loading]);
 
-  if (loading) return null; // ou um spinner, se quiser
+  if (loading) return null;
 
-  return showLogin ? <Login onLoginSuccess={() => setShowLogin(false)} /> : <Homepage />;
+  if (showLogin) return <Login onLoginSuccess={() => setShowLogin(false)} />;
+
+  // Mostra modal de configuração de PIN se o usuário ainda não definiu
+  if (needsPinSetup) {
+    return (
+      <PinSetup
+        isOpen={true}
+        onComplete={completePinSetup}
+        userEmail={userProfile?.email || currentUser?.email}
+      />
+    );
+  }
+
+  return <Homepage />;
 };
 
 
@@ -34,8 +49,10 @@ function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
-        <AuthenticatedApp />
-        <ToastContainer position="top-right" autoClose={2000} closeOnClick pauseOnHover draggable />
+        <SecurityProvider>
+          <AuthenticatedApp />
+          <ToastContainer position="top-right" autoClose={2000} closeOnClick pauseOnHover draggable />
+        </SecurityProvider>
       </AuthProvider>
     </BrowserRouter>
   );

@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import styled from "styled-components";
 import CardLogin from "../components/CardLogin";
 import { getLogins, addLogin, removeLogin, editLogin, getAllUsers } from "./../../firebaseService";
-import { useAuth } from "./../../AuthContext";
+import { useAuth, hasRole } from "./../../AuthContext";
 import Modal from "react-modal";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -295,7 +295,7 @@ const dbName = "default";
 
 const SteelConecta = () => {
   const { userProfile } = useAuth();
-  const isAdmin = userProfile?.role === "admin";
+  const isAdmin = hasRole(userProfile?.role, "admin");
   const [logins, setLogins] = useState([]);
   const [reload, setReload] = useState(false);
   const [modalAddIsOpen, setModalAddIsOpen] = useState(false);

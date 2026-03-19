@@ -178,3 +178,57 @@ export const deleteUserProfile = async (uid) => {
         throw error;
     }
 };
+
+// =================== FUNÇÕES DE PIN E SEGURANÇA ===================
+
+// Salvar PIN do usuário (hash simples — armazenado como hash SHA-256)
+export const setUserPin = async (uid, pinHash) => {
+    try {
+        const db = getDatabase("default");
+        if (!db) return;
+        const userRef = doc(db, "usuarios", uid);
+        await updateDoc(userRef, {
+            pinHash,
+            pinSetAt: new Date().toISOString(),
+        });
+    } catch (error) {
+        console.error("Erro ao definir PIN:", error);
+        throw error;
+    }
+};
+
+// Verificar se o usuário já tem PIN definido
+export const hasUserPin = async (uid) => {
+    try {
+        const profile = await getUserProfile(uid);
+        return !!(profile && profile.pinHash);
+    } catch {
+        return false;
+    }
+};
+
+// Buscar PIN hash de um usuário (para verificação)
+export const getUserPinHash = async (uid) => {
+    try {
+        const profile = await getUserProfile(uid);
+        return profile?.pinHash || null;
+    } catch {
+        return null;
+    }
+};
+
+// Resetar PIN de um usuário (apenas superadmin pode usar)
+export const resetUserPin = async (uid) => {
+    try {
+        const db = getDatabase("default");
+        if (!db) return;
+        const userRef = doc(db, "usuarios", uid);
+        await updateDoc(userRef, {
+            pinHash: null,
+            pinSetAt: null,
+        });
+    } catch (error) {
+        console.error("Erro ao resetar PIN:", error);
+        throw error;
+    }
+};

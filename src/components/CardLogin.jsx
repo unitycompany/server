@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { createPortal } from "react-dom";
 import styled from "styled-components";
 import {
   FaLinkedin, FaInstagram, FaYoutube, FaFacebook, FaBehance, FaCpanel, FaFigma, FaGithub,
@@ -12,6 +13,10 @@ import { PiLinktreeLogo } from "react-icons/pi";
 import { FcGoogle } from "react-icons/fc";
 import { LiaExternalLinkAltSolid } from "react-icons/lia";
 import { IoCopyOutline, IoCopy } from "react-icons/io5";
+import { FiEye, FiEyeOff, FiLock } from "react-icons/fi";
+import { useSecurity, hashPin } from "../SecurityContext";
+import { useAuth } from "../../AuthContext";
+import PinModal from "./PinModal";
 
 // Mapeamento de empresa => logo
 const companyLogos = {
@@ -74,12 +79,14 @@ const Card = styled.div`
     }
   }
 
-  & label {
+  & > label {
     border: 1px solid #00000020;
     padding: 15px 10px 10px 10px;
     position: relative;
+    width: 100%;
+    box-sizing: border-box;
 
-    & span {
+    & > span {
       background: #fff;
       padding: 2px 5px;
       top: -10px;
@@ -90,21 +97,27 @@ const Card = styled.div`
       color: #00000090;
     }
 
-    & p {
+    & > p {
       font-size: 14px;
       color: #000;
       display: flex;
       align-items: center;
-      justify-content: center;
+      justify-content: space-between;
       gap: 10px;
+      margin: 0;
+      min-height: 24px;
 
-      & button {
+      & > button {
         cursor: pointer;
+        width: auto;
+        border: none;
+        background: none;
+        padding: 0;
       }
     }
   }
 
-  & div {
+  & > .card-actions {
     width: 100%;
     display: flex;
     align-items: center;
@@ -257,6 +270,41 @@ const CursoBadge = styled.span`
   letter-spacing: 0.5px;
 `;
 
+const HiddenValue = styled.span`
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: #94a3b8;
+  letter-spacing: 2px;
+  position: static !important;
+  background: none !important;
+  padding: 0 !important;
+  border: none !important;
+`;
+
+const RevealBtn = styled.button`
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 6px;
+  background: #f8fafc !important;
+  color: #64748b !important;
+  font-size: 11px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.15s;
+  width: auto !important;
+  flex-shrink: 0;
+
+  &:hover {
+    background: #e2e8f0 !important;
+    color: #0f172a !important;
+  }
+`;
+
 const CardLogin = ({
   nomeSite,
   login,
@@ -272,7 +320,6 @@ const CardLogin = ({
   nomeFranqueado,
   numeroFranqueado
 }) => {
-  // Mapeia o nome da rede para o respectivo ícone
   const socialIcons = {
     semlogo: <FaLink />,
     linkedin: <FaLinkedin />,
@@ -303,28 +350,65 @@ const CardLogin = ({
     freepik: <SiFreepik />,
   };
 
+  const { pinVerified, verifyPin } = useSecurity();
+  const { userProfile } = useAuth();
+
   const [loginCopied, setLoginCopied] = useState(false);
   const [senhaCopied, setSenhaCopied] = useState(false);
+  const [senhaVisible, setSenhaVisible] = useState(false);
+  const [loginVisible, setLoginVisible] = useState(false);
+  const [showPinModal, setShowPinModal] = useState(false);
+  const [pinTarget, setPinTarget] = useState(null); // "senha" | "login" | "copySenha" | "copyLogin"
 
-  const handleCopy = async () => {
+  const handleReveal = (target) => {
+    if (pinVerified) {
+      if (target === "senha") setSenhaVisible(true);
+      if (target === "login") setLoginVisible(true);
+      if (target === "copySenha") doCopySenha();
+      if (target === "copyLogin") doCopyLogin();
+      // Auto-oculta após 30 segundos
+      setTimeout(() => { setSenhaVisible(false); setLoginVisible(false); }, 30000);
+      return;
+    }
+    setPinTarget(target);
+    setShowPinModal(true);
+  };
+
+  const handlePinSubmit = async (pin) => {
+    const pinHashed = await hashPin(pin);
+    if (userProfile?.pinHash !== pinHashed) return false;
+    verifyPin();
+    setShowPinModal(false);
+    if (pinTarget === "senha") setSenhaVisible(true);
+    if (pinTarget === "login") setLoginVisible(true);
+    if (pinTarget === "copySenha") doCopySenha();
+    if (pinTarget === "copyLogin") doCopyLogin();
+    setTimeout(() => { setSenhaVisible(false); setLoginVisible(false); }, 30000);
+    return true;
+  };
+
+  const doCopyLogin = async () => {
     try {
       await navigator.clipboard.writeText(login);
       setLoginCopied(true);
       setTimeout(() => setLoginCopied(false), 1500);
-    } catch (err) {
+    } catch {
       setLoginCopied(false);
     }
   };
 
-  const senhaCopy = async () => {
+  const doCopySenha = async () => {
     try {
       await navigator.clipboard.writeText(senha);
       setSenhaCopied(true);
       setTimeout(() => setSenhaCopied(false), 1500);
-    } catch (err) {
+    } catch {
       setSenhaCopied(false);
     }
   };
+
+  const handleCopy = () => handleReveal("copyLogin");
+  const senhaCopy = () => handleReveal("copySenha");
 
   return (
     <Card cursoLogin={cursoLogin} cardFixo={cardFixo}>
@@ -355,70 +439,56 @@ const CardLogin = ({
         </Empresa>
       )}
 
-      <label>
+      <label className="sensitive-data">
         <span>Login</span>
         <p style={{ position: 'relative' }}>
-          {login}
-          <button
-            type="button"
-            onClick={handleCopy}
-            style={{ position: 'relative', marginLeft: 4 }}
-          >
-            {loginCopied && (
-              <span
-                style={{
-                  position: 'absolute',
-                  top: '-25px',
-                  left: '50%',
-                  transform: 'translateX(-50%)',
-                  background: '#dddddd',
-                  color: '#353535',
-                  fontSize: 10,
-                  borderRadius: 2,
-                  padding: '2px 4px',
-                  whiteSpace: 'nowrap',
-                  zIndex: 2,
-                  pointerEvents: 'none',
-                }}
-              >
-                Copiado
-              </span>
-            )}
-            {loginCopied ? <IoCopy /> : <IoCopyOutline />}
-          </button>
+          {loginVisible ? login : <HiddenValue><FiLock size={12} /> ••••••••</HiddenValue>}
+          {loginVisible ? (
+            <button
+              type="button"
+              onClick={handleCopy}
+              style={{ position: 'relative', marginLeft: 4 }}
+            >
+              {loginCopied && (
+                <span style={{
+                  position: 'absolute', top: '-25px', left: '50%', transform: 'translateX(-50%)',
+                  background: '#dddddd', color: '#353535', fontSize: 10, borderRadius: 2,
+                  padding: '2px 4px', whiteSpace: 'nowrap', zIndex: 2, pointerEvents: 'none',
+                }}>Copiado</span>
+              )}
+              {loginCopied ? <IoCopy /> : <IoCopyOutline />}
+            </button>
+          ) : (
+            <RevealBtn onClick={() => handleReveal("login")}>
+              <FiEye size={12} /> Ver
+            </RevealBtn>
+          )}
         </p>
       </label>
-      <label>
+      <label className="sensitive-data">
         <span>Senha</span>
         <p style={{ position: 'relative' }}>
-          {senha}
-          <button
-            type="button"
-            onClick={senhaCopy}
-            style={{ position: 'relative', marginLeft: 4 }}
-          >
-            {senhaCopied && (
-              <span
-                style={{
-                  position: 'absolute',
-                  top: '-25px',
-                  left: '50%',
-                  transform: 'translateX(-50%)',
-                  background: '#dddddd',
-                  color: '#353535',
-                  fontSize: 10,
-                  borderRadius: 2,
-                  padding: '2px 4px',
-                  whiteSpace: 'nowrap',
-                  zIndex: 2,
-                  pointerEvents: 'none',
-                }}
-              >
-                Copiado
-              </span>
-            )}
-            {senhaCopied ? <IoCopy /> : <IoCopyOutline />}
-          </button>
+          {senhaVisible ? senha : <HiddenValue><FiLock size={12} /> ••••••••</HiddenValue>}
+          {senhaVisible ? (
+            <button
+              type="button"
+              onClick={senhaCopy}
+              style={{ position: 'relative', marginLeft: 4 }}
+            >
+              {senhaCopied && (
+                <span style={{
+                  position: 'absolute', top: '-25px', left: '50%', transform: 'translateX(-50%)',
+                  background: '#dddddd', color: '#353535', fontSize: 10, borderRadius: 2,
+                  padding: '2px 4px', whiteSpace: 'nowrap', zIndex: 2, pointerEvents: 'none',
+                }}>Copiado</span>
+              )}
+              {senhaCopied ? <IoCopy /> : <IoCopyOutline />}
+            </button>
+          ) : (
+            <RevealBtn onClick={() => handleReveal("senha")}>
+              <FiEye size={12} /> Ver
+            </RevealBtn>
+          )}
         </p>
       </label>
       {(nomeFranqueado || numeroFranqueado) && (
@@ -427,7 +497,7 @@ const CardLogin = ({
           {numeroFranqueado && <span style={{ fontSize: "11px", color: "#555" }}>Nº: {numeroFranqueado}</span>}
         </article>
       )}
-      <div>
+      <div className="card-actions">
         <button onClick={onEdit}>Editar</button>
         <button onClick={onRemove}>Excluir</button>
       </div>
@@ -435,13 +505,23 @@ const CardLogin = ({
         className="visitar-site"
         onClick={() => {
           if (siteUrl) {
-            // abre em nova aba, de forma segura
             window.open(siteUrl, '_blank', 'noopener,noreferrer');
           } else {
             alert("Não foi definido uma URL para o site.");
           }
         }}
       >Visitar site <LiaExternalLinkAltSolid /></button>
+
+      {showPinModal && createPortal(
+        <PinModal
+          isOpen={showPinModal}
+          onSubmit={handlePinSubmit}
+          onCancel={() => { setShowPinModal(false); setPinTarget(null); }}
+          title="Autenticação Requerida"
+          description="Digite seu PIN para visualizar esta informação."
+        />,
+        document.body
+      )}
     </Card>
   );
 };
